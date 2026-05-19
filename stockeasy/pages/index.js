@@ -607,10 +607,9 @@ export default function Home() {
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-              <img src="/logo1.png" alt="Raj Agencies" style={{ height: 36, width: 36, borderRadius: 6, objectFit: 'cover' }} />
+              <img src="/logo1.png"  style={{ height: 36, width: 36, borderRadius: 6, objectFit: 'cover' }} />
               <span style={{ color: '#888787', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
               
-              Raj Agencies
             </div>
             <nav className="nav-tabs">
               {tabs.map(t => (
