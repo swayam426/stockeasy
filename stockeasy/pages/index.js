@@ -597,7 +597,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>StockEasy — Inventory Manager</title>
+        <title>Raj Agencies — Inventory Manager</title>
         <meta name="description" content="Simple inventory management for vendors" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
@@ -607,8 +607,9 @@ export default function Home() {
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-              <div className="brand-icon">S</div>
-              StockEasy
+              <img src="/logo.png" alt="Raj Agencies" style={{ height: 36, width: 36, borderRadius: 6, objectFit: 'cover' }} />
+              
+              Raj Agencies
             </div>
             <nav className="nav-tabs">
               {tabs.map(t => (
