@@ -40,7 +40,7 @@ export default function Login() {
 
       <div style={styles.page}>
         {/* LEFT — Login Form */}
-        <div style={styles.left}>
+        <div style={styles.left} className="login-left">
           <div style={styles.formWrap}>
             <div style={styles.logo}>
               <img src="/logo.png" alt="Raj Agencies" style={styles.logoImg} />
@@ -105,7 +105,7 @@ export default function Login() {
         </div>
 
         {/* RIGHT — Branding Panel */}
-        <div style={styles.right}>
+        <div style={styles.right} className="login-right">
           <div style={styles.rightContent}>
             <div style={styles.rightLogo}>
               <img src="/logo.png" alt="Raj Agencies" style={styles.rightLogoImg} />
@@ -142,6 +142,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '2rem',
+    width: '100%',
   },
   formWrap: {
     width: '100%',
@@ -254,7 +255,6 @@ const styles = {
     textAlign: 'center',
     marginTop: '2rem',
   },
-  // RIGHT PANEL
   right: {
     flex: 1,
     background: 'linear-gradient(135deg, #1a1a1a 0%, #2d0000 50%, #1a1a1a 100%)',
