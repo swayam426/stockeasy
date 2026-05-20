@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 const CATEGORIES = ['General', 'Food & Grocery', 'Electronics', 'Clothing', 'Hardware', 'Stationery', 'Other'];
 
@@ -586,6 +587,11 @@ export default function Home() {
   function showAlert(msg, type = 'success') {
     setAlert({ msg, type });
   }
+  const router = useRouter();
+  async function handleLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  router.push('/login');
+}
 
   const tabs = [
     { id: 'inventory', label: '📦 Inventory' },
@@ -608,7 +614,7 @@ export default function Home() {
           <div className="topbar-inner">
             <div className="brand">
               <img src="/logo1.png"  style={{ height: 36, width: 36, borderRadius: 6, objectFit: 'cover' }} />
-              <span style={{ color: '#888787', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
+              <span style={{ color: '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
               
             </div>
             <nav className="nav-tabs">
@@ -622,6 +628,9 @@ export default function Home() {
                 </button>
               ))}
             </nav>
+            <button onClick={handleLogout} className="btn btn-sm" style={{ color: 'var(--text2)', flexShrink: 0 }}>
+  🚪 Logout
+</button>
           </div>
         </div>
       </div>
