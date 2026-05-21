@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
-const CATEGORIES = ['General', 'Food & Grocery', 'Electronics', 'Clothing', 'Hardware', 'Stationery', 'Other'];
+
 
 function Alert({ msg, type, onClose }) {
   useEffect(() => {
@@ -102,13 +102,8 @@ function AddProductForm({ onAdd }) {
             <input value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="Auto-generated if blank" />
           </div>
         </div>
-        <div className="form-row three">
-          <div className="form-group">
-            <label>Category</label>
-            <select value={form.category} onChange={e => set('category', e.target.value)}>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
+        <div className="form-row">
+          
           <div className="form-group">
             <label>Opening Stock</label>
             <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} placeholder="0" min="0" />
@@ -248,10 +243,7 @@ function InventoryTab({ products, onRefresh, onAlert }) {
 
       <div className="search-bar">
         <input placeholder="Search by name or SKU…" value={search} onChange={e => setSearch(e.target.value)} />
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ width: 180, flex: 'none' }}>
-          <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-        </select>
+        
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -317,7 +309,9 @@ function InventoryTab({ products, onRefresh, onAlert }) {
 function InflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', supplier: '', note: '', date: new Date().toISOString().split('T')[0] });
   const [loading, setLoading] = useState(false);
-  const [txs, setTxs] = useState(null);
+const [txs, setTxs] = useState(null);
+const [search, setSearch] = useState('');
+const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
@@ -353,12 +347,51 @@ function InflowTab({ products, onRefresh, onAlert }) {
           <div className="form-row">
             <div className="form-group">
               <label>Select Product *</label>
-              <select value={form.product_id} onChange={e => set('product_id', e.target.value)} required>
-                <option value="">— Select product —</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (Stock: {Number(p.qty)} {p.unit})</option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+  <input
+    type="text"
+    placeholder="Search product by name..."
+    value={search}
+    onChange={e => { setSearch(e.target.value); set('product_id', ''); }}
+    autoComplete="off"
+  />
+  {search && !form.product_id && filtered.length > 0 && (
+    <div style={{
+      position: 'absolute', top: '100%', left: 0, right: 0,
+      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
+      zIndex: 50, maxHeight: 220, overflowY: 'auto',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
+    }}>
+      {filtered.map(p => (
+        <div
+          key={p.id}
+          onClick={() => { set('product_id', p.id); setSearch(p.name); }}
+          style={{
+            padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+            borderBottom: '1px solid #f0f0f0', display: 'flex',
+            justifyContent: 'space-between', alignItems: 'center'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+        >
+          <span>{p.name}</span>
+          <span style={{ color: '#999', fontSize: 12 }}>Stock: {Number(p.qty)} {p.unit}</span>
+        </div>
+      ))}
+    </div>
+  )}
+  {search && !form.product_id && filtered.length === 0 && (
+    <div style={{
+      position: 'absolute', top: '100%', left: 0, right: 0,
+      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
+      zIndex: 50, padding: '12px 14px', fontSize: 13, color: '#999',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
+    }}>
+      No products found
+    </div>
+  )}
+</div>
+          
             </div>
             <div className="form-group">
               <label>Quantity Received *</label>
@@ -414,7 +447,9 @@ function InflowTab({ products, onRefresh, onAlert }) {
 function OutflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', customer: '', note: '', date: new Date().toISOString().split('T')[0] });
   const [loading, setLoading] = useState(false);
-  const [txs, setTxs] = useState(null);
+const [txs, setTxs] = useState(null);
+const [search, setSearch] = useState('');
+const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
@@ -453,12 +488,51 @@ function OutflowTab({ products, onRefresh, onAlert }) {
           <div className="form-row">
             <div className="form-group">
               <label>Select Product *</label>
-              <select value={form.product_id} onChange={e => set('product_id', e.target.value)} required>
-                <option value="">— Select product —</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (Stock: {Number(p.qty)} {p.unit})</option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+  <input
+    type="text"
+    placeholder="Search product by name..."
+    value={search}
+    onChange={e => { setSearch(e.target.value); set('product_id', ''); }}
+    autoComplete="off"
+  />
+  {search && !form.product_id && filtered.length > 0 && (
+    <div style={{
+      position: 'absolute', top: '100%', left: 0, right: 0,
+      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
+      zIndex: 50, maxHeight: 220, overflowY: 'auto',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
+    }}>
+      {filtered.map(p => (
+        <div
+          key={p.id}
+          onClick={() => { set('product_id', p.id); setSearch(p.name); }}
+          style={{
+            padding: '10px 14px', cursor: 'pointer', fontSize: 13,
+            borderBottom: '1px solid #f0f0f0', display: 'flex',
+            justifyContent: 'space-between', alignItems: 'center'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+        >
+          <span>{p.name}</span>
+          <span style={{ color: '#999', fontSize: 12 }}>Stock: {Number(p.qty)} {p.unit}</span>
+        </div>
+      ))}
+    </div>
+  )}
+  {search && !form.product_id && filtered.length === 0 && (
+    <div style={{
+      position: 'absolute', top: '100%', left: 0, right: 0,
+      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
+      zIndex: 50, padding: '12px 14px', fontSize: 13, color: '#999',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
+    }}>
+      No products found
+    </div>
+  )}
+</div>
+            
             </div>
             <div className="form-group">
               <label>Quantity Issued *</label>
