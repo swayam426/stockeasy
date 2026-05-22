@@ -298,10 +298,10 @@ function InflowTab({ products, onRefresh, onAlert }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-    const res = await fetch('/api/transactions?type=in&limit=100');
-    setTxs(await res.json());
-  }, []);
-
+  const res = await fetch('/api/transactions?type=in&limit=100');
+  const data = await res.json();
+  setTxs(Array.isArray(data) ? data : []);
+}, []);
   useEffect(() => { loadTxs(); }, []);
 
   async function submit(e) {
@@ -404,9 +404,10 @@ const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLow
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-    const res = await fetch('/api/transactions?type=out&limit=30');
-    setTxs(await res.json());
-  }, []);
+  const res = await fetch('/api/transactions?type=out&limit=100');
+  const data = await res.json();
+  setTxs(Array.isArray(data) ? data : []);
+}, []);
 
   useEffect(() => { loadTxs(); }, []);
 
