@@ -293,13 +293,12 @@ function InventoryTab({ products, onRefresh, onAlert }) {
 function InflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', supplier: '', note: '', date: new Date().toISOString().split('T')[0] });
   const [loading, setLoading] = useState(false);
-const [txs, setTxs] = useState(null);
-const [search, setSearch] = useState('');
-const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const [txs, setTxs] = useState(null);
+  const [inflowSearch, setInflowSearch] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-    const res = await fetch('/api/transactions?type=in&limit=30');
+    const res = await fetch('/api/transactions?type=in&limit=100');
     setTxs(await res.json());
   }, []);
 
@@ -331,51 +330,12 @@ const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLow
           <div className="form-row">
             <div className="form-group">
               <label>Select Product *</label>
-              <div style={{ position: 'relative' }}>
-  <input
-    type="text"
-    placeholder="Search product by name..."
-    value={search}
-    onChange={e => { setSearch(e.target.value); set('product_id', ''); }}
-    autoComplete="off"
-  />
-  {search && !form.product_id && filtered.length > 0 && (
-    <div style={{
-      position: 'absolute', top: '100%', left: 0, right: 0,
-      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
-      zIndex: 50, maxHeight: 220, overflowY: 'auto',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
-    }}>
-      {filtered.map(p => (
-        <div
-          key={p.id}
-          onClick={() => { set('product_id', p.id); setSearch(p.name); }}
-          style={{
-            padding: '10px 14px', cursor: 'pointer', fontSize: 13,
-            borderBottom: '1px solid #f0f0f0', display: 'flex',
-            justifyContent: 'space-between', alignItems: 'center'
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-        >
-          <span>{p.name}</span>
-          <span style={{ color: '#999', fontSize: 12 }}>Stock: {Number(p.qty)} {p.unit}</span>
-        </div>
-      ))}
-    </div>
-  )}
-  {search && !form.product_id && filtered.length === 0 && (
-    <div style={{
-      position: 'absolute', top: '100%', left: 0, right: 0,
-      background: '#fff', border: '1px solid #ddd', borderRadius: 8,
-      zIndex: 50, padding: '12px 14px', fontSize: 13, color: '#999',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 2
-    }}>
-      No products found
-    </div>
-  )}
-</div>
-          
+              <select value={form.product_id} onChange={e => set('product_id', e.target.value)} required>
+                <option value="">— Select product —</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} (Stock: {Number(p.qty)} {p.unit})</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Quantity Received *</label>
@@ -402,13 +362,21 @@ const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLow
         </form>
       </div>
 
+      <div className="search-bar">
+        <input
+          placeholder="Search recent inflows by product name..."
+          value={inflowSearch}
+          onChange={e => setInflowSearch(e.target.value)}
+        />
+      </div>
+
       <div className="card" style={{ padding: '0 1.25rem' }}>
         <div className="card-title" style={{ paddingTop: '1.25rem' }}>Recent Inflows</div>
-        {!txs ? <div className="empty">Loading…</div> : txs.length === 0 ? (
-          <div className="empty"><span className="empty-icon">📋</span>No inflow records yet.</div>
+        {!txs ? <div className="empty">Loading…</div> : txs.filter(t => t.product_name.toLowerCase().includes(inflowSearch.toLowerCase())).length === 0 ? (
+          <div className="empty"><span className="empty-icon">📋</span>No inflow records found.</div>
         ) : (
           <div className="log-list">
-            {txs.map(t => (
+            {txs.filter(t => t.product_name.toLowerCase().includes(inflowSearch.toLowerCase())).map(t => (
               <div className="log-item" key={t.id}>
                 <div className="log-dot in">↓</div>
                 <div className="log-body">
@@ -426,7 +394,6 @@ const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLow
     </>
   );
 }
-
 // ─── Outflow Tab ─────────────────────────────────────────────────────────────
 function OutflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', customer: '', note: '', date: new Date().toISOString().split('T')[0] });
