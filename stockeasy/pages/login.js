@@ -43,7 +43,7 @@ export default function Login() {
         <div style={styles.left} className="login-left">
           <div style={styles.formWrap}>
             <div style={styles.logo}>
-              <img src="/logo.png" alt="Raj Agencies" style={styles.logoImg} />
+              <img src="/logo.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
               <span style={styles.logoText}>Raj Agencies</span>
             </div>
 
@@ -151,19 +151,18 @@ const styles = {
   logo: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: 2,
     marginBottom: '2rem',
   },
-  logoImg: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    objectFit: 'cover',
-  },
+logoImg: {
+  width: 68,
+  height: 68,
+  objectFit: 'contain',
+},
   logoText: {
-    fontSize: 17,
+    fontSize: 25,
     fontWeight: 700,
-    color: '#888787',
+    color: '#343333',
     letterSpacing: '-0.01em',
   },
   title: {
@@ -275,8 +274,8 @@ const styles = {
     marginBottom: '2rem',
   },
   rightLogoImg: {
-    width: 90,
-    height: 90,
+    width: 120,
+    height: 120,
     objectFit: 'contain',
     filter: 'drop-shadow(0 4px 20px rgba(200,0,0,0.4))',
   },

@@ -93,36 +93,25 @@ function AddProductForm({ onAdd }) {
       <div className="card-title">➕ Add New Product</div>
       <form onSubmit={submit}>
         <div className="form-row">
-          <div className="form-group">
-            <label>Product Name *</label>
-            <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Basmati Rice 1kg" required />
-          </div>
-          <div className="form-group">
-            <label>SKU / Code (optional)</label>
-            <input value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="Auto-generated if blank" />
-          </div>
-        </div>
-        <div className="form-row">
-          
-          <div className="form-group">
-            <label>Opening Stock</label>
-            <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} placeholder="0" min="0" />
-          </div>
-          <div className="form-group">
-            <label>Low Stock Alert ≤</label>
-            <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)} placeholder="10" min="0" />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Unit Price (₹)</label>
-            <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" min="0" step="0.01" />
-          </div>
-          <div className="form-group">
-            <label>Unit (kg / pcs / box…)</label>
-            <input value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="pcs" />
-          </div>
-        </div>
+  <div className="form-group">
+    <label>Product Name *</label>
+    <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="" required />
+  </div>
+  <div className="form-group">
+    <label>Low Stock Alert ≤</label>
+    <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)} placeholder="10" min="0" />
+  </div>
+</div>
+<div className="form-row">
+  <div className="form-group">
+    <label>Opening Stock</label>
+    <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} placeholder="0" min="0" />
+  </div>
+  <div className="form-group">
+    <label>Unit Price (₹)</label>
+    <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" min="0" step="0.01" />
+  </div>
+</div>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <><span className="spinner" /> Adding…</> : '✓ Add Product'}
         </button>
@@ -178,12 +167,7 @@ function EditModal({ product, onClose, onSave }) {
             <input value={form.name} onChange={e => set('name', e.target.value)} />
           </div>
           <div className="form-row">
-            <div className="form-group">
-              <label>Category</label>
-              <select value={form.category} onChange={e => set('category', e.target.value)}>
-                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
+           
             <div className="form-group">
               <label>Unit</label>
               <input value={form.unit} onChange={e => set('unit', e.target.value)} />
@@ -242,7 +226,7 @@ function InventoryTab({ products, onRefresh, onAlert }) {
       }} />
 
       <div className="search-bar">
-        <input placeholder="Search by name or SKU…" value={search} onChange={e => setSearch(e.target.value)} />
+        <input placeholder="Search by name" value={search} onChange={e => setSearch(e.target.value)} />
         
       </div>
 
@@ -258,7 +242,7 @@ function InventoryTab({ products, onRefresh, onAlert }) {
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>SKU</th>
+                  
                   <th>Category</th>
                   <th>Stock</th>
                   <th>Price</th>
@@ -270,7 +254,7 @@ function InventoryTab({ products, onRefresh, onAlert }) {
                 {filtered.map(p => (
                   <tr key={p.id}>
                     <td><strong>{p.name}</strong></td>
-                    <td style={{ color: 'var(--text3)', fontFamily: 'monospace', fontSize: 12 }}>{p.sku}</td>
+                    
                     <td>{p.category}</td>
                     <td>{Number(p.qty).toLocaleString()} <span style={{ color: 'var(--text3)', fontSize: 12 }}>{p.unit}</span></td>
                     <td>₹{Number(p.price).toFixed(2)}</td>
@@ -687,7 +671,7 @@ export default function Home() {
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-              <img src="/logo1.png"  style={{ height: 36, width: 36, borderRadius: 6, objectFit: 'cover' }} />
+              <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
               <span style={{ color: '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
               
             </div>
