@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         INSERT INTO products (name, sku, category, qty, threshold, price, unit)
         VALUES (
           ${name},
-          ${sku || null},
+          ${sku || ('SKU-' + Date.now())},
           ${category || 'General'},
           ${qty || 0},
           ${threshold || 10},
