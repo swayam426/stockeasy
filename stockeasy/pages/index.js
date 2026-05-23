@@ -431,6 +431,13 @@ function OutflowTab({ products, onRefresh, onAlert }) {
     onRefresh(); loadTxs();
   }
 
+  async function deleteTransaction(id) {
+    if (!confirm('Delete this outflow record?')) return;
+    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+    if (res.ok) { onAlert('Record deleted.', 'success'); loadTxs(); onRefresh(); }
+    else onAlert('Failed to delete.', 'error');
+  }
+
   return (
     <>
       <div className="card">
@@ -494,7 +501,10 @@ function OutflowTab({ products, onRefresh, onAlert }) {
                     {t.date ? new Date(t.date).toLocaleDateString('en-IN') : ''}{t.party ? ` · To: ${t.party}` : ''}{t.note ? ` · ${t.note}` : ''}
                   </div>
                 </div>
-                <div className="log-qty out">−{t.qty}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <div className="log-qty out">−{t.qty}</div>
+                  <button className="btn btn-sm btn-ghost" onClick={() => deleteTransaction(t.id)}>🗑</button>
+                </div>
               </div>
             ))}
           </div>
