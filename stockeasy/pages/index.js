@@ -41,12 +41,13 @@ function StatCards({ products, stockFilter, setStockFilter, setTab }) {
         <div
           key={c.label}
           className="stat-card"
-          onClick={() => {
-            if (c.filter) {
-              setTab('inventory');
-              setStockFilter(stockFilter === c.filter ? '' : c.filter);
-            }
-          }}
+        onClick={() => {
+  if (c.filter) {
+    setTab('inventory');
+    setStockFilter(stockFilter === c.filter ? '' : c.filter);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}}
           style={{
             cursor: c.filter ? 'pointer' : 'default',
             border: stockFilter === c.filter && c.filter ? '1.5px solid var(--text)' : undefined,
@@ -226,22 +227,27 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
 
   return (
     <>
-      <AddProductForm onAdd={(data, err) => {
-        if (err) { onAlert(err, 'error'); return; }
-        onAlert(`"${data.name}" added!`, 'success');
-        onRefresh();
-      }} />
+      {!stockFilter && (
+        <AddProductForm onAdd={(data, err) => {
+          if (err) { onAlert(err, 'error'); return; }
+          onAlert(`"${data.name}" added!`, 'success');
+          onRefresh();
+        }} />
+      )}
 
-      <div className="search-bar">
-        <input placeholder="Search by name" value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
+      {!stockFilter && (
+        <div className="search-bar">
+          <input placeholder="Search by name" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      )}
 
       {stockFilter && (
-        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text2)' }}>
-            Showing: {stockFilter === 'low' ? '⚠️ Low Stock' : stockFilter === 'out' ? '❌ Out of Stock' : '📦 All'} products
+        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
+            {stockFilter === 'low' ? '⚠️ Low Stock Products' : stockFilter === 'out' ? '❌ Out of Stock Products' : <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><img src="/logo3.png" style={{ width: 20, height: 20, objectFit: 'contain' }} /> All Products</span>}
+            <span style={{ fontSize: 13, color: 'var(--text3)', marginLeft: 8 }}>({filtered.length} items)</span>
           </span>
-          <button className="btn btn-sm" onClick={() => setStockFilter('')}>✕ Clear filter</button>
+          <button className="btn btn-sm" onClick={() => { setStockFilter(''); }}>✕ Clear filter</button>
         </div>
       )}
 
