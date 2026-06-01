@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 
-
-
 function Alert({ msg, type, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 4000);
@@ -24,34 +22,42 @@ function StockBadge({ qty, threshold }) {
   return <span className="badge badge-ok">In Stock</span>;
 }
 
-function StatCards({ products }) {
+function StatCards({ products, stockFilter, setStockFilter, setTab }) {
   const total = products.length;
   const stock = products.reduce((s, p) => s + Number(p.qty), 0);
   const low = products.filter(p => Number(p.qty) > 0 && Number(p.qty) <= Number(p.threshold)).length;
   const out = products.filter(p => Number(p.qty) === 0 && p.id).length;
 
+  const cards = [
+    { label: 'Total Products', value: total, sub: 'in catalog', filter: 'all' },
+    { label: 'Total Units', value: stock.toLocaleString(), sub: 'across all products', filter: '' },
+    { label: 'Low Stock', value: low, sub: 'need restocking', filter: 'low', color: low > 0 ? '#854F0B' : undefined },
+    { label: 'Out of Stock', value: out, sub: 'unavailable', filter: 'out', color: out > 0 ? '#A32D2D' : undefined },
+  ];
+
   return (
     <div className="stats-grid">
-      <div className="stat-card">
-        <div className="stat-label">Total Products</div>
-        <div className="stat-value">{total}</div>
-        <div className="stat-sub">in catalog</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">Total Units</div>
-        <div className="stat-value">{stock.toLocaleString()}</div>
-        <div className="stat-sub">across all products</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">Low Stock</div>
-        <div className="stat-value" style={{ color: low > 0 ? '#854F0B' : undefined }}>{low}</div>
-        <div className="stat-sub">need restocking</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">Out of Stock</div>
-        <div className="stat-value" style={{ color: out > 0 ? '#A32D2D' : undefined }}>{out}</div>
-        <div className="stat-sub">unavailable</div>
-      </div>
+      {cards.map(c => (
+        <div
+          key={c.label}
+          className="stat-card"
+          onClick={() => {
+            if (c.filter) {
+              setTab('inventory');
+              setStockFilter(stockFilter === c.filter ? '' : c.filter);
+            }
+          }}
+          style={{
+            cursor: c.filter ? 'pointer' : 'default',
+            border: stockFilter === c.filter && c.filter ? '1.5px solid var(--text)' : undefined,
+            transition: 'all 0.15s',
+          }}
+        >
+          <div className="stat-label">{c.label}</div>
+          <div className="stat-value" style={{ color: c.color }}>{c.value}</div>
+          <div className="stat-sub">{c.sub}{c.filter ? ' · click to filter' : ''}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -93,25 +99,25 @@ function AddProductForm({ onAdd }) {
       <div className="card-title">➕ Add New Product</div>
       <form onSubmit={submit}>
         <div className="form-row">
-  <div className="form-group">
-    <label>Product Name *</label>
-    <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="" required />
-  </div>
-  <div className="form-group">
-    <label>Low Stock Alert ≤</label>
-    <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)} placeholder="10" min="0" />
-  </div>
-</div>
-<div className="form-row">
-  <div className="form-group">
-    <label>Opening Stock</label>
-    <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} placeholder="0" min="0" />
-  </div>
-  <div className="form-group">
-    <label>Unit Price (₹)</label>
-    <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" min="0" step="0.01" />
-  </div>
-</div>
+          <div className="form-group">
+            <label>Product Name *</label>
+            <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="" required />
+          </div>
+          <div className="form-group">
+            <label>Low Stock Alert ≤</label>
+            <input type="number" value={form.threshold} onChange={e => set('threshold', e.target.value)} placeholder="10" min="0" />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Opening Stock</label>
+            <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} placeholder="0" min="0" />
+          </div>
+          <div className="form-group">
+            <label>Unit Price (₹)</label>
+            <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <><span className="spinner" /> Adding…</> : '✓ Add Product'}
         </button>
@@ -167,7 +173,6 @@ function EditModal({ product, onClose, onSave }) {
             <input value={form.name} onChange={e => set('name', e.target.value)} />
           </div>
           <div className="form-row">
-           
             <div className="form-group">
               <label>Unit</label>
               <input value={form.unit} onChange={e => set('unit', e.target.value)} />
@@ -200,15 +205,17 @@ function EditModal({ product, onClose, onSave }) {
 }
 
 // ─── Inventory Tab ──────────────────────────────────────────────────────────
-function InventoryTab({ products, onRefresh, onAlert }) {
+function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilter }) {
   const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('');
   const [editProduct, setEditProduct] = useState(null);
 
-  const filtered = products.filter(p =>
-    (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())) &&
-    (!filterCat || p.category === filterCat)
-  );
+  const filtered = products.filter(p => {
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+    const matchStock = !stockFilter || stockFilter === 'all' ||
+      (stockFilter === 'low' && Number(p.qty) > 0 && Number(p.qty) <= Number(p.threshold)) ||
+      (stockFilter === 'out' && Number(p.qty) === 0);
+    return matchSearch && matchStock;
+  });
 
   async function handleDelete(p) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
@@ -227,8 +234,16 @@ function InventoryTab({ products, onRefresh, onAlert }) {
 
       <div className="search-bar">
         <input placeholder="Search by name" value={search} onChange={e => setSearch(e.target.value)} />
-        
       </div>
+
+      {stockFilter && (
+        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text2)' }}>
+            Showing: {stockFilter === 'low' ? '⚠️ Low Stock' : stockFilter === 'out' ? '❌ Out of Stock' : '📦 All'} products
+          </span>
+          <button className="btn btn-sm" onClick={() => setStockFilter('')}>✕ Clear filter</button>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
@@ -242,7 +257,6 @@ function InventoryTab({ products, onRefresh, onAlert }) {
               <thead>
                 <tr>
                   <th>Product</th>
-                  
                   <th>Category</th>
                   <th>Stock</th>
                   <th>Price</th>
@@ -254,7 +268,6 @@ function InventoryTab({ products, onRefresh, onAlert }) {
                 {filtered.map(p => (
                   <tr key={p.id}>
                     <td><strong>{p.name}</strong></td>
-                    
                     <td>{p.category}</td>
                     <td>{Number(p.qty).toLocaleString()} <span style={{ color: 'var(--text3)', fontSize: 12 }}>{p.unit}</span></td>
                     <td>₹{Number(p.price).toFixed(2)}</td>
@@ -298,10 +311,11 @@ function InflowTab({ products, onRefresh, onAlert }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-  const res = await fetch('/api/transactions?type=in&limit=100');
-  const data = await res.json();
-  setTxs(Array.isArray(data) ? data : []);
-}, []);
+    const res = await fetch('/api/transactions?type=in&limit=100');
+    const data = await res.json();
+    setTxs(Array.isArray(data) ? data : []);
+  }, []);
+
   useEffect(() => { loadTxs(); }, []);
 
   async function submit(e) {
@@ -394,6 +408,7 @@ function InflowTab({ products, onRefresh, onAlert }) {
     </>
   );
 }
+
 // ─── Outflow Tab ─────────────────────────────────────────────────────────────
 function OutflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', customer: '', note: '', date: new Date().toISOString().split('T')[0] });
@@ -513,6 +528,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
     </>
   );
 }
+
 // ─── Log Tab ─────────────────────────────────────────────────────────────────
 function LogTab() {
   const [txs, setTxs] = useState(null);
@@ -577,6 +593,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ msg: '', type: 'success' });
+  const [stockFilter, setStockFilter] = useState('');
 
   const loadProducts = useCallback(async () => {
     const res = await fetch('/api/products');
@@ -590,14 +607,15 @@ export default function Home() {
   function showAlert(msg, type = 'success') {
     setAlert({ msg, type });
   }
+
   const router = useRouter();
   async function handleLogout() {
-  await fetch('/api/auth/logout', { method: 'POST' });
-  router.push('/login');
-}
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
 
   const tabs = [
-    { id: 'inventory', label: '📦 Inventory' },
+    { id: 'inventory', label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><img src="/logo3.png" style={{ width: 18, height: 18, objectFit: 'contain' }} />Inventory</span> },
     { id: 'inflow', label: '⬇ Inflow' },
     { id: 'outflow', label: '⬆ Outflow' },
     { id: 'log', label: '📋 Log' },
@@ -618,7 +636,6 @@ export default function Home() {
             <div className="brand">
               <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
               <span style={{ color: '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
-              
             </div>
             <nav className="nav-tabs">
               {tabs.map(t => (
@@ -632,8 +649,8 @@ export default function Home() {
               ))}
             </nav>
             <button onClick={handleLogout} className="btn btn-sm" style={{ color: 'var(--text2)', flexShrink: 0 }}>
-  🚪 Logout
-</button>
+              🚪 Logout
+            </button>
           </div>
         </div>
       </div>
@@ -647,12 +664,12 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <StatCards products={products} />
+            <StatCards products={products} stockFilter={stockFilter} setStockFilter={setStockFilter} setTab={setTab} />
           )}
 
           <Alert msg={alert.msg} type={alert.type} onClose={() => setAlert({ msg: '', type: 'success' })} />
 
-          {tab === 'inventory' && <InventoryTab products={products} onRefresh={loadProducts} onAlert={showAlert} />}
+          {tab === 'inventory' && <InventoryTab products={products} onRefresh={loadProducts} onAlert={showAlert} stockFilter={stockFilter} setStockFilter={setStockFilter} />}
           {tab === 'inflow' && <InflowTab products={products} onRefresh={loadProducts} onAlert={showAlert} />}
           {tab === 'outflow' && <OutflowTab products={products} onRefresh={loadProducts} onAlert={showAlert} />}
           {tab === 'log' && <LogTab />}
