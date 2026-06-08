@@ -236,9 +236,39 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
       )}
 
       {!stockFilter && (
-        <div className="search-bar">
-          <input placeholder="Search by name" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        <div className="search-bar" style={{ position: 'relative' }}>
+  <input 
+    placeholder="Search by name or tap 🎤 to speak..." 
+    value={search} 
+    onChange={e => setSearch(e.target.value)} 
+    style={{ paddingRight: 44 }}
+  />
+  <button
+    type="button"
+    onClick={() => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) { alert('Speech recognition not supported in this browser. Try Chrome.'); return; }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.start();
+      recognition.onresult = (e) => {
+        setSearch(e.results[0][0].transcript);
+      };
+      recognition.onerror = () => alert('Could not hear you. Try again.');
+    }}
+    style={{
+      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+      background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 0,
+    }}
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+  </button>
+</div>
       )}
 
       {stockFilter && (
