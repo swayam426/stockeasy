@@ -580,6 +580,11 @@ tbody tr:hover td {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(204, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
+}
 
 /* Skeleton loader */
 .skeleton {
