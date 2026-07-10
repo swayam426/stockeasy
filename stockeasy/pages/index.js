@@ -389,10 +389,80 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
   );
 }
 // ─── Inflow Tab ─────────────────────────────────────────────────────────────
-function InflowTab({ products, onRefresh, onAlert }) {
+function EditTransactionModal({ tx, type, onClose, onSave }) {
+  const [form, setForm] = useState({
+    qty: String(tx.qty),
+    party: tx.party || '',
+    note: tx.note || '',
+    date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : '',
+  });
+  const [loading, setLoading] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  async function submit(e) {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch(`/api/transactions/${tx.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        qty: parseInt(form.qty),
+        party: form.party,
+        note: form.note,
+        date: form.date,
+      }),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok) { onSave(null, data.error); return; }
+    onSave(data, null);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <div className="modal-title">{type === 'in' ? '✏️ Edit Inflow' : '✏️ Edit Outflow'}</div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={submit}>
+          <div className="form-group" style={{ marginBottom: 10 }}>
+            <label>Product</label>
+            <input value={tx.product_name} disabled style={{ opacity: 0.6 }} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Quantity</label>
+              <input type="number" value={form.qty} onChange={e => set('qty', e.target.value)} min="1" />
+            </div>
+            <div className="form-group">
+              <label>Date</label>
+              <input type="date" value={form.date} onChange={e => set('date', e.target.value)} />
+            </div>
+          </div>
+          <div className="form-group" style={{ marginBottom: 10 }}>
+            <label>{type === 'in' ? 'Supplier / Source' : 'Customer / Destination'}</label>
+            <input value={form.party} onChange={e => set('party', e.target.value)} placeholder={type === 'in' ? 'e.g. Raj Traders' : 'e.g. Walk-in'} />
+          </div>
+          <div className="form-group" style={{ marginBottom: 10 }}>
+            <label>Note</label>
+            <input value={form.note} onChange={e => set('note', e.target.value)} placeholder="Optional" />
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}function InflowTab({ products, onRefresh, onAlert }) {
   const [form, setForm] = useState({ product_id: '', qty: '', supplier: '', note: '', date: new Date().toISOString().split('T')[0] });
   const [loading, setLoading] = useState(false);
   const [txs, setTxs] = useState(null);
+  const [editTx, setEditTx] = useState(null);
   const [inflowSearch, setInflowSearch] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -403,12 +473,13 @@ function InflowTab({ products, onRefresh, onAlert }) {
   }, []);
 
   useEffect(() => { loadTxs(); }, []);
+
   async function deleteTransaction(id) {
-  if (!confirm('Delete this inflow record?')) return;
-  const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-  if (res.ok) { onAlert('Record deleted.', 'success'); loadTxs(); onRefresh(); }
-  else onAlert('Failed to delete.', 'error');
-}
+    if (!confirm('Delete this inflow record?')) return;
+    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+    if (res.ok) { onAlert('Record deleted.', 'success'); loadTxs(); onRefresh(); }
+    else onAlert('Failed to delete.', 'error');
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -492,14 +563,29 @@ function InflowTab({ products, onRefresh, onAlert }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-  <div className="log-qty in">+{t.qty}</div>
-  <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 16, padding: '6px 10px' }}>🗑</button>
-</div>
+                  <div className="log-qty in">+{t.qty}</div>
+                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
+                  <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {editTx && (
+        <EditTransactionModal
+          tx={editTx}
+          type="in"
+          onClose={() => setEditTx(null)}
+          onSave={(data, err) => {
+            setEditTx(null);
+            if (err) { onAlert(err, 'error'); return; }
+            onAlert('Record updated.', 'success');
+            loadTxs(); onRefresh();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -511,6 +597,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
   const [txs, setTxs] = useState(null);
   const [outflowSearch, setOutflowSearch] = useState('');
   const [groupBy, setGroupBy] = useState(false);
+  const [editTx, setEditTx] = useState(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
@@ -549,10 +636,11 @@ function OutflowTab({ products, onRefresh, onAlert }) {
     else onAlert('Failed to delete.', 'error');
   }
 
- const filteredTxs = txs ? txs.filter(t => 
-  t.product_name.toLowerCase().includes(outflowSearch.toLowerCase()) ||
-  (t.party && t.party.toLowerCase().includes(outflowSearch.toLowerCase()))
-) : [];
+  const filteredTxs = txs ? txs.filter(t =>
+    t.product_name.toLowerCase().includes(outflowSearch.toLowerCase()) ||
+    (t.party && t.party.toLowerCase().includes(outflowSearch.toLowerCase()))
+  ) : [];
+
   const groupedTxs = filteredTxs.reduce((acc, t) => {
     const key = t.party || 'Unknown';
     if (!acc[key]) acc[key] = [];
@@ -602,8 +690,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
 
       <div className="search-bar">
         <input
-        placeholder="Search by product name or customer..."
-         
+          placeholder="Search by product name or customer..."
           value={outflowSearch}
           onChange={e => setOutflowSearch(e.target.value)}
         />
@@ -645,6 +732,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <div className="log-qty out">−{t.qty}</div>
+                      <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
                       <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                     </div>
                   </div>
@@ -665,6 +753,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <div className="log-qty out">−{t.qty}</div>
+                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
                   <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                 </div>
               </div>
@@ -672,6 +761,20 @@ function OutflowTab({ products, onRefresh, onAlert }) {
           </div>
         )}
       </div>
+
+      {editTx && (
+        <EditTransactionModal
+          tx={editTx}
+          type="out"
+          onClose={() => setEditTx(null)}
+          onSave={(data, err) => {
+            setEditTx(null);
+            if (err) { onAlert(err, 'error'); return; }
+            onAlert('Record updated.', 'success');
+            loadTxs(); onRefresh();
+          }}
+        />
+      )}
     </>
   );
 }
