@@ -1013,16 +1013,16 @@ export default function Home() {
         <title>Raj Agencies — Inventory Manager</title>
         <meta name="description" content="Simple inventory management for vendors" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
+        <link rel="icon" href="/logo3.png" />
       </Head>
 
       <div className="topbar">
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-              <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
-              <span style={{ color: '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
-            </div>
+  <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
+  <span style={{ color: darkMode ? '#ffffff' : '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
+</div>
             <nav className="nav-tabs">
               {tabs.map(t => (
                 <button

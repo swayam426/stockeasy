@@ -710,3 +710,11 @@ tbody tr:hover td {
 [data-theme="dark"] tbody tr:hover td {
   background: var(--surface2);
 }
+[data-theme="dark"] .brand span {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .topbar {
+  background: #1a1a1a;
+  border-color: rgba(255,255,255,0.08);
+}
