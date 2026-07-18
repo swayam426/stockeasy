@@ -65,7 +65,7 @@ function StatCards({ products, stockFilter, setStockFilter, setTab }) {
 
 function AddProductForm({ onAdd }) {
   const [form, setForm] = useState({
-    name: '', sku: '', category: 'General', qty: '', threshold: '10', price: '', unit: 'pcs'
+    name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs'
   });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -82,7 +82,7 @@ function AddProductForm({ onAdd }) {
         sku: form.sku.trim() || undefined,
         category: form.category,
         qty: parseInt(form.qty) || 0,
-        threshold: parseInt(form.threshold) || 10,
+        threshold: parseInt(form.threshold) || 5,
         price: parseFloat(form.price) || 0,
         unit: form.unit.trim() || 'pcs',
       }),
@@ -90,7 +90,7 @@ function AddProductForm({ onAdd }) {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) return onAdd(null, data.error);
-    setForm({ name: '', sku: '', category: 'General', qty: '', threshold: '10', price: '', unit: 'pcs' });
+    setForm({ name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs' });
     onAdd(data, null);
   }
 
@@ -424,7 +424,7 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
                     <td><StockBadge qty={Number(p.qty)} threshold={Number(p.threshold)} /></td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn btn-sm" onClick={() => setEditProduct(p)}>✏️ Edit</button>
+                        <button className="btn btn-sm" onClick={() => setEditProduct(p)}> Edit</button>
                         <button className="btn btn-ghost" onClick={() => handleDelete(p)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                       </div>
                     </td>
@@ -558,7 +558,7 @@ function InflowTab({ products, onRefresh, onAlert }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <div className="log-qty in">+{t.qty}</div>
-                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
+                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>Edit</button>
                   <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                 </div>
               </div>
@@ -746,7 +746,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <div className="log-qty out">−{t.qty}</div>
-                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
+                  <button className="btn btn-sm" onClick={() => setEditTx(t)}>Edit</button>
                   <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                 </div>
               </div>
@@ -832,6 +832,8 @@ function LogTab() {
 function DashboardTab({ products }) {
   const [txs, setTxs] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState({ recent: false, monthly: false, top: false, restock: false });
+  const toggle = (key) => setOpen(o => ({ ...o, [key]: !o[key] }));
 
   useEffect(() => {
     async function load() {
@@ -876,47 +878,16 @@ function DashboardTab({ products }) {
   const maxTopVal = Math.max(...topProducts.map(p => Number(p.qty) * Number(p.price)), 1);
   const recentTxs = txs.filter(t => t.type === 'in' || t.type === 'out').slice(0, 8);
 
+
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: '1.5rem' }}>
-        {[
-          { label: 'Total Products', value: totalProducts, sub: 'in catalog' },
-          { label: 'Total Units', value: totalStock.toLocaleString(), sub: 'in stock' },
-          { label: 'Stock Value', value: `₹${(totalValue / 1000).toFixed(1)}K`, sub: 'estimated', color: '#185FA5' },
-          { label: 'Low Stock', value: lowStock.length, sub: 'need restock', color: '#854F0B' },
-          { label: 'Out of Stock', value: outOfStock.length, sub: 'unavailable', color: '#A32D2D' },
-        ].map(c => (
-          <div key={c.label} className="card" style={{ padding: '14px 16px' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: c.color || 'var(--text)', letterSpacing: '-0.02em' }}>{c.value}</div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{c.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-        <div className="card">
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '1.25rem', color: 'var(--text)' }}>📈 Monthly Flow (Last 6 Months)</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140 }}>
-            {monthlyData.map(m => (
-              <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
-                <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 120 }}>
-                  <div style={{ flex: 1, background: 'var(--green)', borderRadius: '3px 3px 0 0', opacity: 0.85, height: `${(m.inflow / maxVal) * 100}%`, minHeight: m.inflow > 0 ? 3 : 0, transition: 'height 0.5s ease' }} title={`Inflow: ${m.inflow}`} />
-                  <div style={{ flex: 1, background: 'var(--red)', borderRadius: '3px 3px 0 0', opacity: 0.85, height: `${(m.outflow / maxVal) * 100}%`, minHeight: m.outflow > 0 ? 3 : 0, transition: 'height 0.5s ease' }} title={`Outflow: ${m.outflow}`} />
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500 }}>{m.label}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text2)' }}><div style={{ width: 10, height: 10, background: 'var(--green)', borderRadius: 2 }} /> Inflow</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text2)' }}><div style={{ width: 10, height: 10, background: 'var(--red)', borderRadius: 2 }} /> Outflow</div>
-          </div>
+      <div className="card" style={{ padding: 0, marginBottom: '1rem' }}>
+        <div onClick={() => toggle('recent')} style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}> Recent Activity</div>
+          <span style={{ fontSize: 18, color: 'var(--text3)', display: 'inline-block', transform: open.recent ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
         </div>
-
-        <div className="card">
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '1rem', color: 'var(--text)' }}>🕐 Recent Activity</div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {open.recent && (
+          <div style={{ padding: '0 1.25rem 1.25rem' }}>
             {recentTxs.length === 0 ? <div className="empty">No activity yet.</div> : recentTxs.map(t => (
               <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '0.5px solid var(--border)' }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: t.type === 'in' ? 'var(--green-bg)' : 'var(--red-bg)', color: t.type === 'in' ? 'var(--green)' : 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{t.type === 'in' ? '↓' : '↑'}</div>
@@ -928,40 +899,80 @@ function DashboardTab({ products }) {
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '1rem', color: 'var(--text)' }}>💰 Top Products by Stock Value</div>
-        {topProducts.length === 0 ? <div className="empty">Add product prices to see stock value.</div> : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {topProducts.map(p => {
-              const val = Number(p.qty) * Number(p.price);
-              return (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, width: 200, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                  <div style={{ flex: 1, background: 'var(--surface2)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: 'var(--blue-text)', borderRadius: 4, width: `${(val / maxTopVal) * 100}%`, transition: 'width 0.5s ease' }} />
+      <div className="card" style={{ padding: 0, marginBottom: '1rem' }}>
+        <div onClick={() => toggle('monthly')} style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Monthly Flow (Last 6 Months)</div>
+          <span style={{ fontSize: 18, color: 'var(--text3)', display: 'inline-block', transform: open.monthly ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
+        </div>
+        {open.monthly && (
+          <div style={{ padding: '0 1.25rem 1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140 }}>
+              {monthlyData.map(m => (
+                <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 120 }}>
+                    <div style={{ flex: 1, background: 'var(--green)', borderRadius: '3px 3px 0 0', opacity: 0.85, height: `${(m.inflow / maxVal) * 100}%`, minHeight: m.inflow > 0 ? 3 : 0, transition: 'height 0.5s ease' }} title={`Inflow: ${m.inflow}`} />
+                    <div style={{ flex: 1, background: 'var(--red)', borderRadius: '3px 3px 0 0', opacity: 0.85, height: `${(m.outflow / maxVal) * 100}%`, minHeight: m.outflow > 0 ? 3 : 0, transition: 'height 0.5s ease' }} title={`Outflow: ${m.outflow}`} />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', flexShrink: 0, width: 80, textAlign: 'right' }}>₹{val.toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500 }}>{m.label}</div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text2)' }}><div style={{ width: 10, height: 10, background: 'var(--green)', borderRadius: 2 }} /> Inflow</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text2)' }}><div style={{ width: 10, height: 10, background: 'var(--red)', borderRadius: 2 }} /> Outflow</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ padding: 0, marginBottom: '1rem' }}>
+        <div onClick={() => toggle('top')} style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Top Products by Stock Value</div>
+          <span style={{ fontSize: 18, color: 'var(--text3)', display: 'inline-block', transform: open.top ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
+        </div>
+        {open.top && (
+          <div style={{ padding: '0 1.25rem 1.25rem' }}>
+            {topProducts.length === 0 ? <div className="empty">Add product prices to see stock value.</div> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {topProducts.map(p => {
+                  const val = Number(p.qty) * Number(p.price);
+                  return (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, width: 200, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                      <div style={{ flex: 1, background: 'var(--surface2)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--blue-text)', borderRadius: 4, width: `${(val / maxTopVal) * 100}%`, transition: 'width 0.5s ease' }} />
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', flexShrink: 0, width: 80, textAlign: 'right' }}>₹{val.toLocaleString('en-IN')}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {lowStock.length > 0 && (
-        <div className="card" style={{ border: '1px solid #f0d090' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '1rem', color: '#854F0B' }}>⚠️ Products Needing Restock ({lowStock.length})</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-            {lowStock.map(p => (
-              <div key={p.id} style={{ background: 'var(--amber-bg)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber-text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--amber-text)', opacity: 0.8 }}>{p.qty} {p.unit} left · threshold: {p.threshold}</div>
-              </div>
-            ))}
+        <div className="card" style={{ padding: 0, border: '1px solid #f0d090' }}>
+          <div onClick={() => toggle('restock')} style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#854F0B' }}> Products Needing Restock ({lowStock.length})</div>
+            <span style={{ fontSize: 18, color: '#854F0B', display: 'inline-block', transform: open.restock ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
           </div>
+          {open.restock && (
+            <div style={{ padding: '0 1.25rem 1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+                {lowStock.map(p => (
+                  <div key={p.id} style={{ background: 'var(--amber-bg)', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber-text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--amber-text)', opacity: 0.8 }}>{p.qty} {p.unit} left · threshold: {p.threshold}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1039,7 +1050,7 @@ export default function Home() {
                 {darkMode ? '☀️ Light' : '🌙 Dark'}
               </button>
               <button onClick={handleLogout} className="btn btn-sm" style={{ color: 'var(--text2)' }}>
-                🚪 Logout
+               Logout
               </button>
             </div>
           </div>
