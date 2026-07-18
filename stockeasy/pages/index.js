@@ -725,7 +725,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <div className="log-qty out">−{t.qty}</div>
-                      <button className="btn btn-sm" onClick={() => setEditTx(t)}>✏️</button>
+                      <button className="btn btn-sm" onClick={() => setEditTx(t)}>Edit</button>
                       <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
                     </div>
                   </div>
