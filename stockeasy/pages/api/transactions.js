@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { product_id, type, limit = 100 } = req.query;
+    const { product_id, type, limit = 10000000} = req.query;
 
     let transactions;
 

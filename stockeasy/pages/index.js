@@ -385,7 +385,7 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
       {stockFilter && (
         <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
-            {stockFilter === 'low' ? '⚠️ Low Stock Products' : stockFilter === 'out' ? '❌ Out of Stock Products' :
+            {stockFilter === 'low' ? '⚠️ Low Stock Products' : stockFilter === 'out' ? ' Out of Stock Products' :
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <img src="/logo3.png" style={{ width: 20, height: 20, objectFit: 'contain' }} /> All Products
               </span>}
@@ -461,7 +461,7 @@ function InflowTab({ products, onRefresh, onAlert }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-    const res = await fetch('/api/transactions?type=in&limit=100');
+    const res = await fetch('/api/transactions?type=in');
     const data = await res.json();
     setTxs(Array.isArray(data) ? data : []);
   }, []);
@@ -594,7 +594,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
-    const res = await fetch('/api/transactions?type=out&limit=100');
+    const res = await fetch('/api/transactions?type=out');
     const data = await res.json();
     setTxs(Array.isArray(data) ? data : []);
   }, []);
@@ -693,7 +693,7 @@ function OutflowTab({ products, onRefresh, onAlert }) {
         <div style={{ paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div className="card-title" style={{ margin: 0 }}>Recent Outflows</div>
           <button className={`btn btn-sm ${groupBy ? 'btn-primary' : ''}`} onClick={() => setGroupBy(g => !g)}>
-            👥 {groupBy ? 'Grouped by Customer' : 'Group by Customer'}
+             {groupBy ? 'Grouped by Customer' : 'Group by Customer'}
           </button>
         </div>
 
@@ -777,7 +777,7 @@ function LogTab() {
   const [filter, setFilter] = useState('');
 
   async function load() {
-    const url = filter ? `/api/transactions?type=${filter}&limit=100` : '/api/transactions?limit=100';
+    const url = filter ? `/api/transactions?type=${filter}` : '/api/transactions?limit=100';
     const res = await fetch(url);
     setTxs(await res.json());
   }
