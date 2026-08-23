@@ -458,6 +458,7 @@ function InflowTab({ products, onRefresh, onAlert }) {
   const [txs, setTxs] = useState(null);
   const [editTx, setEditTx] = useState(null);
   const [inflowSearch, setInflowSearch] = useState('');
+  const [groupBy, setGroupBy] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const loadTxs = useCallback(async () => {
@@ -492,6 +493,18 @@ function InflowTab({ products, onRefresh, onAlert }) {
     setForm(f => ({ ...f, product_id: '', qty: '', supplier: '', note: '' }));
     onRefresh(); loadTxs();
   }
+
+  const filteredTxs = txs ? txs.filter(t =>
+    t.product_name.toLowerCase().includes(inflowSearch.toLowerCase()) ||
+    (t.party && t.party.toLowerCase().includes(inflowSearch.toLowerCase()))
+  ) : [];
+
+  const groupedTxs = filteredTxs.reduce((acc, t) => {
+    const key = t.party || 'Unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
 
   return (
     <>
@@ -535,19 +548,59 @@ function InflowTab({ products, onRefresh, onAlert }) {
 
       <div className="search-bar">
         <input
-          placeholder="Search recent inflows by product name..."
+          placeholder="Search by product name or supplier..."
           value={inflowSearch}
           onChange={e => setInflowSearch(e.target.value)}
         />
       </div>
 
       <div className="card" style={{ padding: '0 1.25rem' }}>
-        <div className="card-title" style={{ paddingTop: '1.25rem' }}>Recent Inflows</div>
-        {!txs ? <div className="empty">Loading…</div> : txs.filter(t => t.product_name.toLowerCase().includes(inflowSearch.toLowerCase())).length === 0 ? (
+        <div style={{ paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div className="card-title" style={{ margin: 0 }}>Recent Inflows</div>
+          <button className={`btn btn-sm ${groupBy ? 'btn-primary' : ''}`} onClick={() => setGroupBy(g => !g)}>
+            {groupBy ? 'Grouped by Supplier' : 'Group by Supplier'}
+          </button>
+        </div>
+
+        {!txs ? (
+          <div className="empty">Loading…</div>
+        ) : filteredTxs.length === 0 ? (
           <div className="empty"><span className="empty-icon">📋</span>No inflow records found.</div>
+        ) : groupBy ? (
+          <div>
+            {Object.entries(groupedTxs).map(([supplier, items]) => (
+              <div key={supplier} style={{ marginBottom: '1rem' }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--text2)',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  padding: '8px 0 4px', borderBottom: '1px solid var(--border)',
+                  marginBottom: 4, display: 'flex', justifyContent: 'space-between'
+                }}>
+                  <span>🏭 {supplier}</span>
+                  <span style={{ color: 'var(--text3)' }}>{items.length} items · +{items.reduce((s, t) => s + Number(t.qty), 0)} units</span>
+                </div>
+                {items.map(t => (
+                  <div className="log-item" key={t.id}>
+                    <div className="log-dot in">↓</div>
+                    <div className="log-body">
+                      <div className="log-name">{t.product_name}</div>
+                      <div className="log-meta">
+                        {t.date ? new Date(t.date).toLocaleDateString('en-IN') : ''}{t.note ? ` · ${t.note}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div className="log-qty in">+{t.qty}</div>
+                      <button className="btn btn-sm" onClick={() => setEditTx(t)}>Edit</button>
+                      <button className="btn btn-ghost" onClick={() => deleteTransaction(t.id)} style={{ fontSize: 20, padding: '8px 14px' }}>🗑</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="log-list">
-            {txs.filter(t => t.product_name.toLowerCase().includes(inflowSearch.toLowerCase())).map(t => (
+            {filteredTxs.map(t => (
               <div className="log-item" key={t.id}>
                 <div className="log-dot in">↓</div>
                 <div className="log-body">
@@ -777,9 +830,10 @@ function LogTab() {
   const [filter, setFilter] = useState('');
 
   async function load() {
-    const url = filter ? `/api/transactions?type=${filter}` : '/api/transactions?limit=100';
+    const url = filter ? `/api/transactions?type=${filter}` : '/api/transactions';
     const res = await fetch(url);
-    setTxs(await res.json());
+    const data = await res.json();
+    setTxs(Array.isArray(data) ? data : []);
   }
 
   useEffect(() => { load(); }, [filter]);
@@ -837,7 +891,7 @@ function DashboardTab({ products }) {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch('/api/transactions?limit=500');
+      const res = await fetch('/api/transactions');
       const data = await res.json();
       setTxs(Array.isArray(data) ? data : []);
       setLoading(false);
@@ -1031,9 +1085,9 @@ export default function Home() {
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-  <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
-  <span style={{ color: darkMode ? '#ffffff' : '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
-</div>
+              <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
+              <span style={{ color: darkMode ? '#ffffff' : '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
+            </div>
             <nav className="nav-tabs">
               {tabs.map(t => (
                 <button

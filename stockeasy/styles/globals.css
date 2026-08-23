@@ -718,3 +718,62 @@ tbody tr:hover td {
   background: #1a1a1a;
   border-color: rgba(255,255,255,0.08);
 }
+
+@media (max-width: 900px) {
+ 
+  /* The marketing panel is decoration. Drop it rather than squeeze it. */
+  .login-right {
+    display: none !important;
+  }
+ 
+  /* This is the actual bug: inline `flex: 0 0 480px` refuses to shrink,
+     so on a 360px screen the panel stayed 480px wide and pushed the
+     page sideways. Let it shrink and fill instead. */
+  .login-left {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    padding: 2rem 1.25rem !important;
+    align-items: flex-start !important;
+  }
+ 
+  /* iOS Safari auto-zooms the page when a focused input is below 16px.
+     Your inputs are 14px, which triggers it on every tap. */
+  .login-left input {
+    font-size: 16px !important;
+  }
+ 
+  /* Give the show/hide password button a proper touch target (44px is
+     the usual accessibility floor; it was a bare 16px emoji). */
+  .login-left button[type="button"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+ 
+  /* Sign-in button: same reasoning, comfortable to tap. */
+  .login-left button[type="submit"] {
+    min-height: 48px !important;
+  }
+}
+ 
+/* Narrow phones — trim the header so the form stays above the fold. */
+@media (max-width: 400px) {
+  .login-left img {
+    width: 56px !important;
+    height: 56px !important;
+  }
+ 
+  .login-left {
+    padding: 1.5rem 1rem !important;
+  }
+}
+ 
+/* Short/landscape phones: 100vh overflows because mobile browser
+   chrome isn't counted. dvh accounts for it where supported. */
+@supports (min-height: 100dvh) {
+  .login-left {
+    min-height: 100dvh;
+  }
+}

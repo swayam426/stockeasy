@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { username, password } = req.body;
 
   const validUsername = process.env.ADMIN_USERNAME || 'admin';
-  const validPassword = process.env.ADMIN_PASSWORD || 'rajagencies123';
+  const validPassword = process.env.ADMIN_PASSWORD || 'Swayam246';
 
   if (username !== validUsername || password !== validPassword) {
     return res.status(401).json({ error: 'Invalid username or password' });
