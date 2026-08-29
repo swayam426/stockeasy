@@ -1,6 +1,9 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import QuotationsTab from '../components/QuotationsTab';
+import ClientsTab from '../components/ClientsTab';
+import ModulePicker from '../components/ModulePicker';
 
 function Alert({ msg, type, onClose }) {
   useEffect(() => {
@@ -1034,6 +1037,8 @@ function DashboardTab({ products }) {
 }
 
 export default function Home() {
+  // null = show the workspace chooser; otherwise 'inventory' | 'quotations'
+  const [module, setModule] = useState(null);
   const [tab, setTab] = useState('dashboard');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1064,18 +1069,61 @@ export default function Home() {
     router.push('/login');
   }
 
-  const tabs = [
-    { id: 'dashboard', label: '📊 Dashboard' },
-    { id: 'inventory', label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><img src="/logo3.png" style={{ width: 18, height: 18, objectFit: 'contain' }} />Inventory</span> },
-    { id: 'inflow', label: '⬇ Inflow' },
-    { id: 'outflow', label: '⬆ Outflow' },
-    { id: 'log', label: '📋 Log' },
-  ];
+  // Tabs belong to a module, so each workspace shows only its own nav.
+  const MODULE_TABS = {
+    inventory: [
+      { id: 'dashboard', label: '📊 Dashboard' },
+      { id: 'inventory', label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><img src="/logo3.png" style={{ width: 18, height: 18, objectFit: 'contain' }} />Inventory</span> },
+      { id: 'inflow', label: '⬇ Inflow' },
+      { id: 'outflow', label: '⬆ Outflow' },
+      { id: 'log', label: '📋 Log' },
+    ],
+    quotations: [
+      { id: 'quotations', label: '📄 Quotations' },
+      { id: 'clients', label: '👥 Clients' },
+    ],
+  };
+
+  const MODULE_LABEL = { inventory: 'Inventory', quotations: 'Quotations' };
+
+  function pickModule(id) {
+    setModule(id);
+    setTab(MODULE_TABS[id][0].id);
+    setStockFilter('');
+  }
+
+  function backToPicker() {
+    setModule(null);
+    setStockFilter('');
+    setAlert({ msg: '', type: 'success' });
+  }
+
+  // No module chosen yet — show the chooser instead of the app shell.
+  if (!module) {
+    return (
+      <>
+        <Head>
+          <title>Raj Agencies</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/logo3.png" />
+        </Head>
+        <ModulePicker
+          onPick={pickModule}
+          onLogout={handleLogout}
+          darkMode={darkMode}
+          onToggleTheme={() => setDarkMode(d => !d)}
+        />
+      </>
+    );
+  }
+
+  const tabs = MODULE_TABS[module];
+  const isInventory = module === 'inventory';
 
   return (
     <>
       <Head>
-        <title>Raj Agencies — Inventory Manager</title>
+        <title>{MODULE_LABEL[module]} — Raj Agencies</title>
         <meta name="description" content="Simple inventory management for vendors" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/logo3.png" />
@@ -1085,8 +1133,17 @@ export default function Home() {
         <div className="container">
           <div className="topbar-inner">
             <div className="brand">
-              <img src="/logo2.png" alt="Raj Agencies" style={{ height: 44, width: 44, objectFit: 'contain' }} />
-              <span style={{ color: darkMode ? '#ffffff' : '#363434', fontSize: '20px', fontWeight: 700 }}>Raj Agencies</span>
+              <button
+                onClick={backToPicker}
+                title="Switch workspace"
+                className="brand-back"
+              >
+                <img src="/logo2.png" alt="Raj Agencies" style={{ height: 40, width: 40, objectFit: 'contain' }} />
+                <span style={{ color: darkMode ? '#ffffff' : '#363434', fontSize: 18, fontWeight: 700 }}>
+                  Raj Agencies
+                </span>
+                <span className="brand-module">{MODULE_LABEL[module]}</span>
+              </button>
             </div>
             <nav className="nav-tabs">
               {tabs.map(t => (
@@ -1100,6 +1157,9 @@ export default function Home() {
               ))}
             </nav>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button onClick={backToPicker} className="btn btn-sm" style={{ color: 'var(--text2)' }}>
+                ⇄ Switch
+              </button>
               <button onClick={() => setDarkMode(d => !d)} className="btn btn-sm" style={{ color: 'var(--text2)' }}>
                 {darkMode ? '☀️ Light' : '🌙 Dark'}
               </button>
@@ -1113,7 +1173,9 @@ export default function Home() {
 
       <main className="main">
         <div className="container">
-          {loading ? (
+          {/* Stock stat cards are inventory context; they'd be noise above a
+              quotation, and they scroll the actual work off the screen. */}
+          {isInventory && (loading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: '1.5rem' }}>
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="skeleton" style={{ height: 80 }} />
@@ -1121,7 +1183,7 @@ export default function Home() {
             </div>
           ) : (
             <StatCards products={products} stockFilter={stockFilter} setStockFilter={setStockFilter} setTab={setTab} />
-          )}
+          ))}
 
           <Alert msg={alert.msg} type={alert.type} onClose={() => setAlert({ msg: '', type: 'success' })} />
 
@@ -1129,6 +1191,8 @@ export default function Home() {
           {tab === 'inventory' && <InventoryTab products={products} onRefresh={loadProducts} onAlert={showAlert} stockFilter={stockFilter} setStockFilter={setStockFilter} />}
           {tab === 'inflow' && <InflowTab products={products} onRefresh={loadProducts} onAlert={showAlert} />}
           {tab === 'outflow' && <OutflowTab products={products} onRefresh={loadProducts} onAlert={showAlert} />}
+          {tab === 'quotations' && <QuotationsTab products={products} onAlert={showAlert} />}
+          {tab === 'clients' && <ClientsTab onAlert={showAlert} />}
           {tab === 'log' && <LogTab />}
         </div>
       </main>

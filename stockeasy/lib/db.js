@@ -38,5 +38,154 @@ export async function initDb() {
     )
   `;
 
+  // ─── Quotation module ────────────────────────────────────────────────
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS clients (
+      id               SERIAL PRIMARY KEY,
+      name             TEXT NOT NULL,
+      contact_person   TEXT,
+      phone            TEXT,
+      email            TEXT,
+      billing_address  TEXT,
+      shipping_address TEXT,
+      gst_number       TEXT,
+      notes            TEXT,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS clients_name_idx ON clients (LOWER(name))`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS quotations (
+      id             SERIAL PRIMARY KEY,
+      quote_number   TEXT NOT NULL UNIQUE,
+
+      -- Client is referenced for convenience, but the details below are
+      -- SNAPSHOTTED at creation time. A quotation is a legal-ish document:
+      -- if the client later changes address or GST number, the quotation
+      -- as issued must not silently change. ON DELETE SET NULL keeps the
+      -- quotation readable even if the client record is removed.
+      client_id        INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+      client_name      TEXT NOT NULL,
+      contact_person   TEXT,
+      phone            TEXT,
+      email            TEXT,
+      billing_address  TEXT,
+      shipping_address TEXT,
+      gst_number       TEXT,
+
+      quote_date     DATE NOT NULL DEFAULT CURRENT_DATE,
+      valid_until    DATE,
+
+      status         TEXT NOT NULL DEFAULT 'draft'
+                     CHECK (status IN ('draft','sent','accepted','rejected','expired','converted')),
+
+      -- Discount is stored as both a type and a value so "10%" and "₹10"
+      -- stay distinguishable after saving.
+      discount_type  TEXT NOT NULL DEFAULT 'none'
+                     CHECK (discount_type IN ('none','percent','fixed')),
+      discount_value NUMERIC(12,2) NOT NULL DEFAULT 0,
+      other_charges  NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+      -- Computed totals are persisted so the list page doesn't have to
+      -- re-derive them, and so a saved quotation's figures never drift.
+      subtotal       NUMERIC(12,2) NOT NULL DEFAULT 0,
+      total_gst      NUMERIC(12,2) NOT NULL DEFAULT 0,
+      discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+      grand_total    NUMERIC(12,2) NOT NULL DEFAULT 0,
+      total_qty      INTEGER NOT NULL DEFAULT 0,
+
+      notes          TEXT,
+      terms          TEXT,
+
+      created_by     TEXT NOT NULL DEFAULT 'admin',
+      converted_at   TIMESTAMPTZ,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS quotations_client_idx ON quotations (client_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS quotations_status_idx ON quotations (status)`;
+  await sql`CREATE INDEX IF NOT EXISTS quotations_date_idx ON quotations (quote_date DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS quotation_items (
+      id           SERIAL PRIMARY KEY,
+      quotation_id INTEGER NOT NULL REFERENCES quotations(id) ON DELETE CASCADE,
+
+      -- Same snapshot reasoning: product_name and unit_price are copied in,
+      -- so renaming or repricing a product doesn't rewrite past quotations.
+      product_id   INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      product_name TEXT NOT NULL,
+      description  TEXT,
+      unit         TEXT NOT NULL DEFAULT 'pcs',
+
+      qty          NUMERIC(12,2) NOT NULL CHECK (qty > 0),
+      unit_price   NUMERIC(12,2) NOT NULL DEFAULT 0,
+      gst_percent  NUMERIC(5,2) NOT NULL DEFAULT 0,
+
+      line_subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
+      gst_amount    NUMERIC(12,2) NOT NULL DEFAULT 0,
+      line_total    NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+      sort_order   INTEGER NOT NULL DEFAULT 0
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS quotation_items_quote_idx ON quotation_items (quotation_id)`;
+
+  // Counter table for quotation numbering. A dedicated row per year lets us
+  // generate QT-2026-0001 atomically without scanning the quotations table
+  // (which would race under concurrent creates).
+  await sql`
+    CREATE TABLE IF NOT EXISTS quote_counters (
+      year      INTEGER PRIMARY KEY,
+      last_seq  INTEGER NOT NULL DEFAULT 0
+    )
+  `;
+
   return sql;
+}
+
+/**
+ * The first quotation number to issue. Set this to continue an existing
+ * series — e.g. if your previous book ended at 700, start at 701.
+ * Lowering it later has no effect: numbers only ever move forward, so
+ * already-issued numbers can never be handed out twice.
+ */
+export const QUOTE_START_SEQ = 701;
+
+/**
+ * Reserves the next quotation number, e.g. QT-2026-0701.
+ *
+ * Numbering runs CONTINUOUSLY across years rather than resetting each
+ * January — the year in the string is a label, not a counter reset. So a
+ * series that reaches 0748 in December continues at QT-2027-0749.
+ *
+ * The increment itself is an atomic upsert with RETURNING, so two
+ * simultaneous requests can't be handed the same sequence: the database
+ * decides the order, not the app. GREATEST() enforces the floor, which
+ * also means bumping QUOTE_START_SEQ upward is safe at any time.
+ */
+export async function nextQuoteNumber(sql, year = new Date().getFullYear()) {
+  // Highest sequence issued in any year, so a new year picks up where the
+  // last one left off instead of colliding with old numbers.
+  const [{ high }] = await sql`
+    SELECT COALESCE(MAX(last_seq), 0)::int AS high FROM quote_counters
+  `;
+  const floor = Math.max(QUOTE_START_SEQ, high + 1);
+
+  const rows = await sql`
+    INSERT INTO quote_counters (year, last_seq)
+    VALUES (${year}, ${floor})
+    ON CONFLICT (year)
+    DO UPDATE SET last_seq = GREATEST(quote_counters.last_seq + 1, ${floor})
+    RETURNING last_seq
+  `;
+  const seq = rows[0].last_seq;
+  return `QT-${year}-${String(seq).padStart(4, '0')}`;
 }

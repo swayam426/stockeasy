@@ -11,7 +11,9 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
     "cookie": "^0.6.0",
-    "next": "14.2.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "next": "^14.2.35",
     "nodemailer": "^9.0.3",
     "pg": "^8.11.5",
     "react": "^18",
@@ -19,6 +21,6 @@
   },
   "devDependencies": {
     "eslint": "^8",
-    "eslint-config-next": "14.2.3"
+    "eslint-config-next": "^14.2.35"
   }
 }
