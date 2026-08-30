@@ -22,12 +22,12 @@ export default async function handler(req, res) {
 
   // POST /api/products — add new product
   if (req.method === 'POST') {
-    const { name, sku, category, qty, threshold, price, unit } = req.body;
+    const { name, sku, category, qty, threshold, price, unit, hsn_code } = req.body;
     if (!name) return res.status(400).json({ error: 'Product name is required' });
 
     try {
       const [product] = await sql`
-        INSERT INTO products (name, sku, category, qty, threshold, price, unit)
+        INSERT INTO products (name, sku, category, qty, threshold, price, unit, hsn_code)
         VALUES (
           ${name},
           ${sku || ('SKU-' + Date.now())},
@@ -35,7 +35,8 @@ export default async function handler(req, res) {
           ${qty || 0},
           ${threshold || 10},
           ${price || 0},
-          ${unit || 'pcs'}
+          ${unit || 'pcs'},
+          ${hsn_code || null}
         )
         ON CONFLICT (sku) DO NOTHING
         RETURNING *

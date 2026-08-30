@@ -146,7 +146,7 @@ export default function QuotationsTab({ products, onAlert }) {
           style={{ flex: 1, minWidth: 200 }}
         />
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 140 }}>
-          <option value="">All statuses</option>
+          <option value="">All status</option>
           {QUOTE_STATUSES.map(s => (
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
@@ -171,8 +171,8 @@ export default function QuotationsTab({ products, onAlert }) {
               : 'No quotations match your filters.'}
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
+          <div className="table-wrap q-list-wrap">
+            <table className="q-list">
               <thead>
                 <tr>
                   <th>Quotation</th>
@@ -188,18 +188,18 @@ export default function QuotationsTab({ products, onAlert }) {
               <tbody>
                 {filtered.map(q => (
                   <tr key={q.id}>
-                    <td>
+                    <td data-label="Quotation">
                       <strong>{q.quote_number}</strong>
                       <div style={{ fontSize: 11, color: 'var(--text3)' }}>by {q.created_by}</div>
                     </td>
-                    <td>{q.client_name}</td>
-                    <td>{fmtDate(q.quote_date)}</td>
-                    <td>{fmtDate(q.valid_until)}</td>
-                    <td className="ta-r">{q.item_count}</td>
-                    <td className="ta-r" style={{ fontWeight: 600 }}>
+                    <td data-label="Client">{q.client_name}</td>
+                    <td data-label="Date">{fmtDate(q.quote_date)}</td>
+                    <td data-label="Valid until">{fmtDate(q.valid_until)}</td>
+                    <td className="ta-r" data-label="Items">{q.item_count}</td>
+                    <td className="ta-r" style={{ fontWeight: 600 }} data-label="Grand total">
                       {formatPaise(toPaise(q.grand_total))}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <select
                         value={q.status}
                         onChange={e => changeStatus(q, e.target.value)}
@@ -211,7 +211,7 @@ export default function QuotationsTab({ products, onAlert }) {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td data-label="" className="q-actions-cell">
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         <button className="btn btn-sm" onClick={() => openQuote(q.id, 'view')}>View</button>
                         {q.status !== 'converted' && (

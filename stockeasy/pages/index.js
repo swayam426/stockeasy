@@ -68,7 +68,7 @@ function StatCards({ products, stockFilter, setStockFilter, setTab }) {
 
 function AddProductForm({ onAdd }) {
   const [form, setForm] = useState({
-    name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs'
+    name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs', hsn_code: ''
   });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -88,12 +88,13 @@ function AddProductForm({ onAdd }) {
         threshold: parseInt(form.threshold) || 5,
         price: parseFloat(form.price) || 0,
         unit: form.unit.trim() || 'pcs',
+        hsn_code: form.hsn_code.trim() || null,
       }),
     });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) return onAdd(null, data.error);
-    setForm({ name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs' });
+    setForm({ name: '', sku: '', category: 'General', qty: '', threshold: '5', price: '', unit: 'pcs', hsn_code: '' });
     onAdd(data, null);
   }
 
@@ -121,6 +122,16 @@ function AddProductForm({ onAdd }) {
             <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0.00" min="0" step="0.01" />
           </div>
         </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>HSN / SAC Code</label>
+            <input value={form.hsn_code} onChange={e => set('hsn_code', e.target.value)} placeholder="e.g. 85258020" />
+          </div>
+          <div className="form-group">
+            <label>Unit</label>
+            <input value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="NOS / SET / MTS" />
+          </div>
+        </div>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? <><span className="spinner" /> Adding…</> : '✓ Add Product'}
         </button>
@@ -137,6 +148,7 @@ function EditModal({ product, onClose, onSave }) {
     price: String(product.price),
     unit: product.unit,
     category: product.category,
+    hsn_code: product.hsn_code || '',
   });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -154,6 +166,7 @@ function EditModal({ product, onClose, onSave }) {
         price: parseFloat(form.price),
         unit: form.unit,
         category: form.category,
+        hsn_code: form.hsn_code,
       }),
     });
     const data = await res.json();
@@ -178,6 +191,10 @@ function EditModal({ product, onClose, onSave }) {
             <div className="form-group">
               <label>Unit</label>
               <input value={form.unit} onChange={e => set('unit', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>HSN / SAC Code</label>
+              <input value={form.hsn_code} onChange={e => set('hsn_code', e.target.value)} placeholder="e.g. 85258020" />
             </div>
           </div>
           <div className="form-row">
@@ -410,7 +427,7 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>Category</th>
+                  <th>HSN</th>
                   <th>Stock</th>
                   <th>Price</th>
                   <th>Status</th>
@@ -421,7 +438,7 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
                 {filtered.map(p => (
                   <tr key={p.id}>
                     <td><strong>{p.name}</strong></td>
-                    <td>{p.category}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text2)' }}>{p.hsn_code || '—'}</td>
                     <td>{Number(p.qty).toLocaleString()} <span style={{ color: 'var(--text3)', fontSize: 12 }}>{p.unit}</span></td>
                     <td>₹{Number(p.price).toFixed(2)}</td>
                     <td><StockBadge qty={Number(p.qty)} threshold={Number(p.threshold)} /></td>

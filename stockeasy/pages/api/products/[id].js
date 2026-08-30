@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   // PUT /api/products/[id] — edit product
   if (req.method === 'PUT') {
-    const { name, qty, threshold, price, unit, category } = req.body;
+    const { name, qty, threshold, price, unit, category, hsn_code } = req.body;
     try {
       // Get current qty to detect manual stock adjustment
       const [current] = await sql`SELECT qty, name FROM products WHERE id = ${id}`;
@@ -25,7 +25,8 @@ export default async function handler(req, res) {
           threshold = COALESCE(${threshold}, threshold),
           price     = COALESCE(${price}, price),
           unit      = COALESCE(${unit}, unit),
-          category  = COALESCE(${category}, category)
+          category  = COALESCE(${category}, category),
+          hsn_code  = COALESCE(${hsn_code ?? null}, hsn_code)
         WHERE id = ${id}
         RETURNING *
       `;

@@ -138,6 +138,28 @@ export async function initDb() {
 
   await sql`CREATE INDEX IF NOT EXISTS quotation_items_quote_idx ON quotation_items (quotation_id)`;
 
+  // ─── Migrations ──────────────────────────────────────────────────────
+  // ADD COLUMN IF NOT EXISTS is idempotent, so these run harmlessly on
+  // every boot and bring older databases up to date without a separate
+  // migration step. Existing rows get NULL, which the UI treats as blank.
+
+  // HSN/SAC code — required on GST documents, and per-product rather than
+  // per-quotation, so it's stored on the catalogue and copied onto lines.
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS hsn_code TEXT`;
+  await sql`ALTER TABLE quotation_items ADD COLUMN IF NOT EXISTS hsn_code TEXT`;
+
+  // Lines quoted without a price ("ELECTRICAL BOARDS ... NOT AVAILABLE")
+  // still need to appear on the document, so they're flagged rather than
+  // priced at zero — a zero would wrongly imply the item is free.
+  await sql`ALTER TABLE quotation_items ADD COLUMN IF NOT EXISTS not_available BOOLEAN NOT NULL DEFAULT FALSE`;
+
+  // Subject of the quotation, e.g. CCTV — appears in the covering line.
+  await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS subject TEXT`;
+
+  // The customer-facing reference in financial-year/date form
+  // (26-27/29/08/2026). quote_number stays as the unique internal key.
+  await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS ref_number TEXT`;
+
   // Counter table for quotation numbering. A dedicated row per year lets us
   // generate QT-2026-0001 atomically without scanning the quotations table
   // (which would race under concurrent creates).
@@ -188,4 +210,24 @@ export async function nextQuoteNumber(sql, year = new Date().getFullYear()) {
   `;
   const seq = rows[0].last_seq;
   return `QT-${year}-${String(seq).padStart(4, '0')}`;
+}
+
+/**
+ * Customer-facing reference in the form used on the printed quotation:
+ *   26-27/29/08/2026   =  financial year / date
+ *
+ * The Indian financial year runs April–March, so anything before April
+ * belongs to the year that started the previous April.
+ */
+export function quoteRefNumber(dateInput = new Date()) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  // Jan–Mar (months 0–2) still fall in the FY that began last April.
+  const fyStart = d.getMonth() < 3 ? year - 1 : year;
+  const fy = `${String(fyStart).slice(-2)}-${String(fyStart + 1).slice(-2)}`;
+
+  return `${fy}/${day}/${month}/${year}`;
 }

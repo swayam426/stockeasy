@@ -42,7 +42,17 @@ export function formatPaise(paise) {
  * document level) would make the printed line items fail to add up to the
  * printed total, which is worse than a sub-paisa inaccuracy.
  */
-export function calcLine({ qty, unit_price, gst_percent }) {
+export function calcLine({ qty, unit_price, gst_percent, not_available }) {
+  // A line marked unavailable carries no figures at all. Treating it as
+  // zero would print "Rs. 0.00" and read as though it were free.
+  if (not_available) {
+    return {
+      lineSubtotalP: 0, gstAmountP: 0, lineTotalP: 0,
+      line_subtotal: 0, gst_amount: 0, line_total: 0,
+      not_available: true,
+    };
+  }
+
   const qtyNum = Number(qty);
   const priceP = toPaise(unit_price);
   const gstPct = Number(gst_percent);
@@ -51,16 +61,26 @@ export function calcLine({ qty, unit_price, gst_percent }) {
   const safeGst = Number.isFinite(gstPct) && gstPct >= 0 ? gstPct : 0;
 
   const lineSubtotalP = Math.round(priceP * safeQty);
-  const gstAmountP = Math.round((lineSubtotalP * safeGst) / 100);
-  const lineTotalP = lineSubtotalP + gstAmountP;
+
+  // GST is kept at full precision here (983.898 on the sample) because
+  // that's what the TAX column prints; only the line TOTAL is rounded.
+  const gstExactP = (lineSubtotalP * safeGst) / 100;
+  const gstAmountP = Math.round(gstExactP);
+
+  // The printed TOTAL is rounded to the nearest whole rupee, matching the
+  // house format: 5466.10 + 983.898 = 6449.998 prints as 6450.
+  const lineTotalP = Math.round((lineSubtotalP + gstExactP) / 100) * 100;
 
   return {
     lineSubtotalP,
     gstAmountP,
+    gstExactP,
     lineTotalP,
     line_subtotal: toRupees(lineSubtotalP),
     gst_amount: toRupees(gstAmountP),
+    gst_exact: gstExactP / 100,
     line_total: toRupees(lineTotalP),
+    not_available: false,
   };
 }
 
@@ -92,7 +112,9 @@ export function calcQuotation({ items = [], discount_type = 'none', discount_val
     const line = calcLine(item);
     subtotalP += line.lineSubtotalP;
     totalGstP += line.gstAmountP;
-    totalQty += Number(item.qty) || 0;
+    // Unavailable lines are shown but not counted — quoting a quantity
+    // for something you can't supply shouldn't inflate the totals.
+    if (!line.not_available) totalQty += Number(item.qty) || 0;
     return { ...item, ...line };
   });
 

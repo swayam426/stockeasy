@@ -1,4 +1,4 @@
-import { initDb } from '../../../lib/db';
+import { initDb, quoteRefNumber } from '../../../lib/db';
 import { calcQuotation, effectiveStatus, QUOTE_STATUSES } from '../../../lib/quoteMath';
 
 export default async function handler(req, res) {
@@ -103,6 +103,8 @@ export default async function handler(req, res) {
           quote_date       = ${body.quote_date || existing.quote_date},
           valid_until      = ${body.valid_until || null},
           status           = ${body.status || existing.status},
+          subject          = ${body.subject || null},
+          ref_number       = ${body.ref_number || existing.ref_number || quoteRefNumber(body.quote_date || existing.quote_date)},
           discount_type    = ${body.discount_type || 'none'},
           discount_value   = ${Number(body.discount_value) || 0},
           other_charges    = ${totals.other_charges},
@@ -127,6 +129,7 @@ export default async function handler(req, res) {
         await sql`
           INSERT INTO quotation_items (
             quotation_id, product_id, product_name, description, unit,
+            hsn_code, not_available,
             qty, unit_price, gst_percent,
             line_subtotal, gst_amount, line_total, sort_order
           ) VALUES (
@@ -135,6 +138,8 @@ export default async function handler(req, res) {
             ${String(line.product_name).trim()},
             ${line.description || null},
             ${line.unit || 'pcs'},
+            ${line.hsn_code || null},
+            ${Boolean(line.not_available)},
             ${Number(line.qty)},
             ${Number(line.unit_price) || 0},
             ${Number(line.gst_percent) || 0},

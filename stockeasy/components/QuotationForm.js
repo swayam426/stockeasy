@@ -7,7 +7,8 @@ const plusDays = (n) => new Date(Date.now() + n * 86400000).toISOString().split(
 
 const BLANK_LINE = {
   product_id: '', product_name: '', description: '',
-  unit: 'pcs', qty: '1', unit_price: '0', gst_percent: '18',
+  unit: 'NOS', qty: '1', unit_price: '0', gst_percent: '18',
+  hsn_code: '', not_available: false,
   available_stock: null,
 };
 
@@ -28,6 +29,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     valid_until: existing?.valid_until ? String(existing.valid_until).split('T')[0] : plusDays(15),
     notes: existing?.notes || '',
     terms: existing?.terms || '',
+    subject: existing?.subject || '',
     status: existing?.status || 'draft',
   }));
 
@@ -37,10 +39,12 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
           product_id: it.product_id || '',
           product_name: it.product_name || '',
           description: it.description || '',
-          unit: it.unit || 'pcs',
+          unit: it.unit || 'NOS',
           qty: String(it.qty),
           unit_price: String(it.unit_price),
           gst_percent: String(it.gst_percent),
+          hsn_code: it.hsn_code || '',
+          not_available: Boolean(it.not_available),
           available_stock: null,
         }))
       : [{ ...BLANK_LINE }]
@@ -110,8 +114,10 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     setLine(idx, {
       product_id: p.id,
       product_name: p.name,
-      unit: p.unit || 'pcs',
+      unit: p.unit || 'NOS',
       unit_price: String(Number(p.price) || 0),
+      // HSN comes from the catalogue so it's entered once, not per quote.
+      hsn_code: p.hsn_code || '',
       available_stock: Number(p.qty),
     });
   }
@@ -133,7 +139,10 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
 
   // Same helper the server uses, so what you see is what gets stored.
   const totals = calcQuotation({
-    items: lines.map(l => ({ qty: l.qty, unit_price: l.unit_price, gst_percent: l.gst_percent })),
+    items: lines.map(l => ({
+      qty: l.qty, unit_price: l.unit_price, gst_percent: l.gst_percent,
+      not_available: l.not_available,
+    })),
     discount_type: discountType,
     discount_value: discountValue,
     other_charges: otherCharges,
@@ -143,6 +152,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
   // you hold is legitimate (you may be restocking). We warn, never block.
   const stockWarnings = lines
     .map((l, i) => {
+      if (l.not_available) return null;
       if (l.available_stock == null || !l.product_name) return null;
       const q = Number(l.qty) || 0;
       if (q > l.available_stock) {
@@ -171,6 +181,8 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
         product_name: l.product_name,
         description: l.description,
         unit: l.unit,
+        hsn_code: l.hsn_code || null,
+        not_available: Boolean(l.not_available),
         qty: Number(l.qty),
         unit_price: Number(l.unit_price) || 0,
         gst_percent: Number(l.gst_percent) || 0,
@@ -263,7 +275,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
           </div>
         </div>
 
-        <div className="form-row" style={{ marginBottom: 0 }}>
+        <div className="form-row">
           <div className="form-group">
             <label>Quotation Date</label>
             <input type="date" value={header.quote_date} onChange={e => setH('quote_date', e.target.value)} />
@@ -273,23 +285,39 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
             <input type="date" value={header.valid_until} onChange={e => setH('valid_until', e.target.value)} />
           </div>
         </div>
+
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Subject</label>
+          <input
+            value={header.subject}
+            onChange={e => setH('subject', e.target.value)}
+            placeholder="e.g. CCTV, ACCESS CONTROL, FIRE ALARM…"
+          />
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+            {header.subject.trim()
+              ? <>Prints as: We take pleasure in offering you a quotation for “{header.subject.trim()}”.</>
+              : <>Leave blank to print: We take pleasure in offering you a quotation.</>}
+          </div>
+        </div>
       </div>
 
       {/* ─── Products ───────────────────────────────────────────── */}
       <div className="card" style={{ padding: '1.25rem 1rem' }}>
         <div className="card-title">Products</div>
 
-        <div className="table-wrap">
-          <table style={{ fontSize: 12 }}>
+        <div className="table-wrap q-lines-wrap">
+          <table className="q-lines" style={{ fontSize: 12 }}>
             <thead>
               <tr>
-                <th style={{ minWidth: 200 }}>Product</th>
-                <th style={{ width: 80 }}>Qty</th>
-                <th style={{ width: 110 }}>Unit Price</th>
-                <th style={{ width: 90 }}>GST %</th>
-                <th style={{ width: 100, textAlign: 'right' }}>Subtotal</th>
-                <th style={{ width: 100, textAlign: 'right' }}>GST</th>
-                <th style={{ width: 110, textAlign: 'right' }}>Total</th>
+                <th style={{ minWidth: 190 }}>Item</th>
+                <th style={{ width: 96 }}>HSN</th>
+                <th style={{ width: 66 }}>Qty</th>
+                <th style={{ width: 66 }}>UOM</th>
+                <th style={{ width: 100 }}>Rate</th>
+                <th style={{ width: 80 }}>GST %</th>
+                <th style={{ width: 96, textAlign: 'right' }}>Taxable</th>
+                <th style={{ width: 96, textAlign: 'right' }}>Tax</th>
+                <th style={{ width: 100, textAlign: 'right' }}>Total</th>
                 <th style={{ width: 40 }}></th>
               </tr>
             </thead>
@@ -301,7 +329,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
                 const isCustom = !l.product_id && !!l.product_name;
                 return (
                   <tr key={i}>
-                    <td style={cellStyle}>
+                    <td style={cellStyle} data-label="Item">
                       <div style={{ marginBottom: 4 }}>
                         <ProductPicker
                           products={products}
@@ -343,35 +371,73 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
                           One-off item · not in inventory
                         </div>
                       )}
+
+                      {/* Quote an item you can't currently supply: it prints
+                          as NOT AVAILABLE rather than as a zero price. */}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 10, cursor: 'pointer', color: 'var(--text3)' }}>
+                        <input
+                          type="checkbox"
+                          checked={l.not_available}
+                          onChange={e => setLine(i, { not_available: e.target.checked })}
+                          style={{ width: 'auto', margin: 0 }}
+                        />
+                        Not available
+                      </label>
                     </td>
-                    <td style={cellStyle}>
+                    <td style={cellStyle} data-label="HSN">
+                      <input
+                        value={l.hsn_code}
+                        onChange={e => setLine(i, { hsn_code: e.target.value })}
+                        placeholder="HSN"
+                        style={{ fontSize: 11 }}
+                      />
+                    </td>
+                    <td style={cellStyle} data-label="Qty">
                       <input
                         type="number" min="0" step="any" value={l.qty}
                         onChange={e => setLine(i, { qty: e.target.value })}
                         style={{ borderColor: over ? 'var(--red)' : undefined }}
                       />
                     </td>
-                    <td style={cellStyle}>
+                    <td style={cellStyle} data-label="UOM">
+                      <input
+                        value={l.unit}
+                        onChange={e => setLine(i, { unit: e.target.value })}
+                        placeholder="NOS"
+                        style={{ fontSize: 11 }}
+                      />
+                    </td>
+                    <td style={cellStyle} data-label="Rate">
                       <input type="number" min="0" step="0.01" value={l.unit_price}
+                        disabled={l.not_available}
                         onChange={e => setLine(i, { unit_price: e.target.value })} />
                     </td>
-                    <td style={cellStyle}>
-                      <select value={l.gst_percent} onChange={e => setLine(i, { gst_percent: e.target.value })}>
+                    <td style={cellStyle} data-label="GST %">
+                      <select value={l.gst_percent} disabled={l.not_available}
+                        onChange={e => setLine(i, { gst_percent: e.target.value })}>
                         {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
                       </select>
                     </td>
-                    <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }}>
-                      {formatPaise(t.lineSubtotalP || 0)}
-                    </td>
-                    <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }}>
-                      {formatPaise(t.gstAmountP || 0)}
-                    </td>
-                    <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14, fontWeight: 600 }}>
-                      {formatPaise(t.lineTotalP || 0)}
-                    </td>
-                    <td style={{ ...cellStyle, paddingTop: 10 }}>
+                    {l.not_available ? (
+                      <td colSpan={3} style={{ ...cellStyle, textAlign: 'center', paddingTop: 14, fontStyle: 'italic', color: 'var(--text3)' }}>
+                        NOT AVAILABLE
+                      </td>
+                    ) : (
+                      <>
+                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Taxable">
+                          {formatPaise(t.lineSubtotalP || 0)}
+                        </td>
+                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Tax">
+                          {formatPaise(t.gstAmountP || 0)}
+                        </td>
+                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14, fontWeight: 600 }} data-label="Total">
+                          {formatPaise(t.lineTotalP || 0)}
+                        </td>
+                      </>
+                    )}
+                    <td style={{ ...cellStyle, paddingTop: 10 }} data-label="">
                       <button
-                        type="button" className="btn btn-ghost"
+                        type="button" className="btn btn-ghost btn-remove-line"
                         onClick={() => removeLine(i)}
                         disabled={lines.length === 1}
                         style={{ fontSize: 16, padding: '4px 8px' }}

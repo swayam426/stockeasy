@@ -1182,3 +1182,254 @@ tbody tr:hover td {
   font-size: 11px;
   letter-spacing: 0.06em;
 }
+
+/* ─── Quotation document: house format ───────────────────────────────── */
+
+.qh { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.qh-text { flex: 1; min-width: 0; }
+.qh-addr { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.5; }
+.qh-line { font-size: 11.5px; color: var(--text); line-height: 1.55; }
+.qh-logo { width: 74px; height: 74px; object-fit: contain; flex-shrink: 0; }
+
+.q-ref { font-size: 12px; color: var(--text); margin: 10px 0 14px; }
+
+.q-to-label { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.q-to-name { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 3px; }
+.q-to-addr { font-size: 12px; color: var(--text); line-height: 1.5; }
+
+.q-heading { font-size: 14px; font-weight: 700; color: var(--text); margin: 14px 0 10px; }
+.q-intro { font-size: 12.5px; color: var(--text); line-height: 1.6; }
+
+.q-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 14px 0 12px;
+  table-layout: fixed;
+}
+.q-table th,
+.q-table td {
+  border: 1px solid var(--border-strong);
+  padding: 4px 5px;
+  vertical-align: middle;
+  color: var(--text);
+  word-wrap: break-word;
+}
+.q-table th {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  background: transparent;
+  text-transform: uppercase;
+}
+.q-table .ta-c { text-align: center; }
+.q-table .ta-r { text-align: right; }
+.q-bold { font-weight: 700; }
+.q-na { font-style: italic; color: var(--text2); }
+.q-desc { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+.q-notes { font-size: 12px; color: var(--text); line-height: 1.7; }
+
+@media (max-width: 700px) {
+  .qh { flex-direction: column; }
+  .q-table { font-size: 9px; table-layout: auto; }
+  .q-table th, .q-table td { padding: 3px; }
+}
+
+/* On paper the table must not lose its borders or split rows awkwardly. */
+@media print {
+  .q-table th, .q-table td { border: 1px solid #000 !important; }
+  .q-table tr { page-break-inside: avoid; }
+  .q-table thead { display: table-header-group; }
+  .q-notes { page-break-inside: avoid; }
+}
+
+/* ─── House format overrides: match the printed stationery ───────────── */
+
+/* The document is typeset in a serif face, unlike the rest of the app. */
+.quote-doc {
+  font-family: 'Times New Roman', Times, serif;
+  max-width: 210mm;      /* A4 width, so screen mirrors paper */
+  margin: 0 auto;
+}
+
+.quote-doc .qh-wordmark {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #6A1B7A;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.quote-doc .qh-rule {
+  border: none;
+  border-top: 1.5px solid var(--text);
+  margin: 8px 0 12px;
+}
+
+.quote-doc .q-heading {
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  letter-spacing: 0.06em;
+}
+
+.quote-doc .q-intro-indent { text-indent: 2em; }
+
+/* Yellow header row, as on the stationery. */
+.quote-doc .q-table th {
+  background: #FFFF00;
+  color: #000;
+  border: 1px solid #000;
+  text-align: left;
+  white-space: nowrap;
+}
+.quote-doc .q-table td { border: 1px solid #000; }
+
+@media print {
+  .quote-doc .q-table th {
+    background: #FFFF00 !important;
+    /* Browsers strip background colours when printing unless told not to. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .quote-doc .qh-wordmark {
+    color: #6A1B7A !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .quote-doc { max-width: none; }
+}
+
+/* Letterhead image: sits above the rule, scales with the container so
+   changing widthMm in company.js is the only knob needed. */
+.quote-doc .qh-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 4px;
+}
+@media print {
+  .quote-doc .qh-image {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ─── Mobile: tables become stacked cards ────────────────────────────────
+   A quotation line has ten fields. On a 390px screen that's ~39px per
+   column, which squeezes the GST dropdown to an unusable sliver and
+   pushes the rest off-screen. Below 820px each row becomes a labelled
+   card instead, so every field is full width and tappable.
+   ---------------------------------------------------------------------- */
+
+@media (max-width: 820px) {
+
+  .q-lines-wrap,
+  .q-list-wrap {
+    overflow-x: visible;   /* no sideways scrolling once stacked */
+  }
+
+  .q-lines,
+  .q-list {
+    display: block;
+    width: 100%;
+  }
+
+  /* Column headings are replaced by per-field labels. */
+  .q-lines thead,
+  .q-list thead {
+    display: none;
+  }
+
+  .q-lines tbody,
+  .q-list tbody {
+    display: block;
+  }
+
+  .q-lines tr,
+  .q-list tr {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .q-lines tr:last-child,
+  .q-list tr:last-child { margin-bottom: 0; }
+
+  .q-lines td,
+  .q-list td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: auto !important;
+    padding: 5px 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    text-align: right !important;
+  }
+  .q-lines tr td:last-child,
+  .q-list tr td:last-child { border-bottom: none !important; }
+
+  /* The label comes from data-label on each cell. */
+  .q-lines td::before,
+  .q-list td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text3);
+    text-align: left;
+  }
+  /* Cells with an empty label (action buttons) shouldn't reserve space. */
+  .q-lines td[data-label=""]::before,
+  .q-list td[data-label=""]::before { content: none; }
+
+  /* Inputs fill the space to the right of their label. */
+  .q-lines td input,
+  .q-lines td select {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;   /* under 16px iOS zooms the page on focus */
+  }
+
+  /* The product picker needs the full width of the card. */
+  .q-lines td[data-label="Item"] {
+    display: block;
+    text-align: left !important;
+  }
+  .q-lines td[data-label="Item"]::before {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Remove-line button sits on its own row, right-aligned. */
+  .q-lines td[data-label=""] { justify-content: flex-end; padding-top: 8px !important; }
+  .btn-remove-line { font-size: 14px !important; padding: 6px 14px !important; }
+  .btn-remove-line::after { content: ' Remove'; font-size: 12px; }
+
+  /* Quotation list: actions wrap into a neat row of full-height buttons. */
+  .q-list .q-actions-cell { justify-content: flex-end; padding-top: 10px !important; }
+  .q-list .q-actions-cell .btn { min-height: 36px; }
+  .q-list td select { min-height: 36px; }
+}
+
+/* Very narrow phones: stack label above value so long figures don't wrap. */
+@media (max-width: 400px) {
+  .q-lines td,
+  .q-list td {
+    display: block;
+    text-align: left !important;
+  }
+  .q-lines td::before,
+  .q-list td::before {
+    display: block;
+    margin-bottom: 3px;
+  }
+}

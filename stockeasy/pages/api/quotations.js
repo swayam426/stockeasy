@@ -1,4 +1,4 @@
-import { initDb, nextQuoteNumber } from '../../lib/db';
+import { initDb, nextQuoteNumber, quoteRefNumber } from '../../lib/db';
 import { calcQuotation, effectiveStatus } from '../../lib/quoteMath';
 
 export default async function handler(req, res) {
@@ -63,6 +63,8 @@ export default async function handler(req, res) {
         }
       }
 
+      const quoteDate = body.quote_date || new Date().toISOString().split('T')[0];
+
       // Totals are ALWAYS recomputed server-side. Whatever the browser sent
       // for subtotal/grand_total is ignored — otherwise a crafted request
       // could store a quotation whose total disagrees with its own lines.
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
         INSERT INTO quotations (
           quote_number, client_id, client_name, contact_person, phone, email,
           billing_address, shipping_address, gst_number,
-          quote_date, valid_until, status,
+          quote_date, valid_until, status, subject, ref_number,
           discount_type, discount_value, other_charges,
           subtotal, total_gst, discount_amount, grand_total, total_qty,
           notes, terms, created_by
@@ -93,9 +95,11 @@ export default async function handler(req, res) {
           ${body.billing_address || null},
           ${body.shipping_address || null},
           ${body.gst_number || null},
-          ${body.quote_date || new Date().toISOString().split('T')[0]},
+          ${quoteDate},
           ${body.valid_until || null},
           ${body.status || 'draft'},
+          ${body.subject || null},
+          ${body.ref_number || quoteRefNumber(quoteDate)},
           ${body.discount_type || 'none'},
           ${Number(body.discount_value) || 0},
           ${totals.other_charges},
@@ -117,6 +121,7 @@ export default async function handler(req, res) {
         await sql`
           INSERT INTO quotation_items (
             quotation_id, product_id, product_name, description, unit,
+            hsn_code, not_available,
             qty, unit_price, gst_percent,
             line_subtotal, gst_amount, line_total, sort_order
           ) VALUES (
@@ -125,6 +130,8 @@ export default async function handler(req, res) {
             ${String(line.product_name).trim()},
             ${line.description || null},
             ${line.unit || 'pcs'},
+            ${line.hsn_code || null},
+            ${Boolean(line.not_available)},
             ${Number(line.qty)},
             ${Number(line.unit_price) || 0},
             ${Number(line.gst_percent) || 0},
