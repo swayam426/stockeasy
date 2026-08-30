@@ -1433,3 +1433,25 @@ tbody tr:hover td {
     margin-bottom: 3px;
   }
 }
+
+/* Inventory export bar, above the products table. */
+.inv-export-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+.inv-export-count {
+  font-size: 12px;
+  color: var(--text3);
+}
+@media (max-width: 520px) {
+  .inv-export-bar { justify-content: space-between; }
+  .inv-export-bar .btn { min-height: 36px; }
+}
+
+/* Buttons already use inline-flex with a gap, so an inline SVG icon sits
+   correctly beside its label without extra markup. */
+.btn svg { flex-shrink: 0; }

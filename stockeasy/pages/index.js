@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import QuotationsTab from '../components/QuotationsTab';
 import ClientsTab from '../components/ClientsTab';
 import ModulePicker from '../components/ModulePicker';
+import { downloadXlsx } from '../lib/xlsx';
+import { DownloadCloud } from '../components/Icons';
 
 function Alert({ msg, type, onClose }) {
   useEffect(() => {
@@ -296,6 +298,7 @@ function EditTransactionModal({ tx, type, onClose, onSave }) {
 
 function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilter }) {
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -307,6 +310,65 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
       (stockFilter === 'out' && Number(p.qty) === 0);
     return matchSearch && matchStock;
   });
+
+  // Exports the full catalogue, not just what's on screen — a stock report
+  // filtered by whatever was typed in the search box would be misleading.
+  async function handleExport() {
+    if (!products.length) { onAlert('Nothing to export yet.', 'error'); return; }
+    setExporting(true);
+    try {
+      const rows = products.map(p => {
+        const qty = Number(p.qty) || 0;
+        const price = Number(p.price) || 0;
+        const threshold = Number(p.threshold) || 0;
+        return {
+          name: p.name,
+          sku: p.sku,
+          hsn_code: p.hsn_code || '',
+          category: p.category,
+          qty,
+          unit: p.unit,
+          price,
+          value: qty * price,
+          threshold,
+          status: qty === 0 ? 'Out of Stock' : qty <= threshold ? 'Low Stock' : 'In Stock',
+          created_at: p.created_at || null,
+        };
+      });
+
+      const totalUnits = rows.reduce((s, r) => s + r.qty, 0);
+      const totalValue = rows.reduce((s, r) => s + r.value, 0);
+      const stamp = new Date();
+
+      await downloadXlsx({
+        sheetName: 'Inventory',
+        title: 'Raj Agencies — Inventory',
+        subtitle:
+          `Exported ${stamp.toLocaleString('en-IN')} · ${rows.length} products · ` +
+          `${totalUnits.toLocaleString('en-IN')} units · stock value ₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        columns: [
+          { header: 'Product',      key: 'name',       width: 42, type: 'text' },
+          { header: 'SKU',          key: 'sku',        width: 18, type: 'text' },
+          { header: 'HSN / SAC',    key: 'hsn_code',   width: 14, type: 'text' },
+          { header: 'Category',     key: 'category',   width: 16, type: 'text' },
+          { header: 'Stock',        key: 'qty',        width: 10, type: 'int'  },
+          { header: 'Unit',         key: 'unit',       width: 9,  type: 'text' },
+          { header: 'Unit Price',   key: 'price',      width: 14, type: 'money' },
+          { header: 'Stock Value',  key: 'value',      width: 16, type: 'money' },
+          { header: 'Low Stock At', key: 'threshold',  width: 12, type: 'int'  },
+          { header: 'Status',       key: 'status',     width: 14, type: 'text' },
+          { header: 'Added On',     key: 'created_at', width: 13, type: 'date' },
+        ],
+        rows,
+      }, `raj-agencies-inventory-${stamp.toISOString().split('T')[0]}.xlsx`);
+
+      onAlert(`Exported ${rows.length} products to Excel.`, 'success');
+    } catch (e) {
+      onAlert('Could not create the Excel file.', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleDelete(p) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
@@ -414,6 +476,24 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
           <button className="btn btn-sm" onClick={() => setStockFilter('')}>✕ Clear filter</button>
         </div>
       )}
+
+      {/* Export bar: always visible, and always exports the whole catalogue
+          rather than the filtered view, so the file is a full stock report. */}
+      <div className="inv-export-bar">
+        <span className="inv-export-count">
+          {filtered.length === products.length
+            ? `${products.length} products`
+            : `${filtered.length} of ${products.length} products shown`}
+        </span>
+        <button
+          className="btn btn-sm"
+          onClick={handleExport}
+          disabled={exporting || products.length === 0}
+          title="Download all inventory as an Excel file"
+        >
+          {exporting ? <><span className="spinner" /> Preparing…</> : <><DownloadCloud /> Download</>}
+        </button>
+      </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (

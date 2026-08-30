@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { COMPANY } from '../lib/company';
 import { downloadQuotationPdf } from '../lib/quotePdf';
+import { DownloadCloud } from './Icons';
 
 /**
  * The on-screen quotation, laid out to match the printed house format
@@ -57,7 +58,7 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
         )}
         <button className="btn" onClick={() => window.print()}>🖨 Print</button>
         <button className="btn btn-primary" onClick={handleDownload} disabled={downloading}>
-          {downloading ? <><span className="spinner" /> Preparing…</> : '⬇ Download PDF'}
+          {downloading ? <><span className="spinner" /> Preparing…</> : <><DownloadCloud /> Download PDF</>}
         </button>
       </div>
 

@@ -3,6 +3,7 @@ import QuotationForm from './QuotationForm';
 import QuotationView from './QuotationView';
 import { formatPaise, toPaise, QUOTE_STATUSES } from '../lib/quoteMath';
 import { downloadQuotationPdf } from '../lib/quotePdf';
+import { DownloadCloud } from './Icons';
 
 const STATUS_COLORS = {
   draft:     { bg: 'var(--surface2)', fg: 'var(--text2)' },
@@ -223,7 +224,7 @@ export default function QuotationsTab({ products, onAlert }) {
                           disabled={downloadingId === q.id}
                           title="Download PDF"
                         >
-                          {downloadingId === q.id ? '…' : '⬇ PDF'}
+                          {downloadingId === q.id ? '…' : <><DownloadCloud size={14} /> PDF</>}
                         </button>
                         <button className="btn btn-sm" onClick={() => handleDuplicate(q)}>Copy</button>
                         <button
