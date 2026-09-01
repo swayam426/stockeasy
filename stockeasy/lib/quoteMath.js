@@ -42,6 +42,55 @@ export function formatPaise(paise) {
  * document level) would make the printed line items fail to add up to the
  * printed total, which is worse than a sub-paisa inaccuracy.
  */
+/**
+ * Line maths for a TAX-INCLUSIVE quotation (the individual format).
+ *
+ * Here the rate already contains GST, so nothing is added on top:
+ *   amount = qty × rate           (6 × 5250 = 31500)
+ *
+ * The tax component is still backed out and recorded, because the figure
+ * is needed for accounts even though it never appears on the document:
+ *   taxable = amount / (1 + rate/100)
+ *   tax     = amount − taxable
+ */
+export function calcLineInclusive({ qty, unit_price, gst_percent, not_available }) {
+  if (not_available) {
+    return {
+      lineSubtotalP: 0, gstAmountP: 0, gstExactP: 0, lineTotalP: 0,
+      line_subtotal: 0, gst_amount: 0, gst_exact: 0, line_total: 0,
+      not_available: true,
+    };
+  }
+
+  const qtyNum = Number(qty);
+  const priceP = toPaise(unit_price);
+  const gstPct = Number(gst_percent);
+
+  const safeQty = Number.isFinite(qtyNum) && qtyNum > 0 ? qtyNum : 0;
+  const safeGst = Number.isFinite(gstPct) && gstPct >= 0 ? gstPct : 0;
+
+  // The printed AMOUNT — no rounding games, this is simply qty × rate.
+  const lineTotalP = Math.round(priceP * safeQty);
+
+  // Reverse-calculate the tax hidden inside that amount.
+  const taxableExactP = lineTotalP / (1 + safeGst / 100);
+  const lineSubtotalP = Math.round(taxableExactP);
+  const gstExactP = lineTotalP - taxableExactP;
+  const gstAmountP = Math.round(gstExactP);
+
+  return {
+    lineSubtotalP,
+    gstAmountP,
+    gstExactP,
+    lineTotalP,
+    line_subtotal: toRupees(lineSubtotalP),
+    gst_amount: toRupees(gstAmountP),
+    gst_exact: gstExactP / 100,
+    line_total: toRupees(lineTotalP),
+    not_available: false,
+  };
+}
+
 export function calcLine({ qty, unit_price, gst_percent, not_available }) {
   // A line marked unavailable carries no figures at all. Treating it as
   // zero would print "Rs. 0.00" and read as though it were free.
@@ -103,15 +152,24 @@ export function calcLine({ qty, unit_price, gst_percent, not_available }) {
  * invoice. Worth confirming with whoever files your GST returns; if you
  * need the pre-GST behaviour, that's a change to this function alone.
  */
-export function calcQuotation({ items = [], discount_type = 'none', discount_value = 0, other_charges = 0 }) {
+export function calcQuotation({ items = [], discount_type = 'none', discount_value = 0, other_charges = 0, quote_type = 'company' }) {
   let subtotalP = 0;
   let totalGstP = 0;
   let totalQty = 0;
+  let linesTotalP = 0;
+
+  // Individual quotations quote tax-inclusive rates; company ones add GST.
+  const lineFn = quote_type === 'individual' ? calcLineInclusive : calcLine;
 
   const lines = items.map(item => {
-    const line = calcLine(item);
+    const line = lineFn(item);
     subtotalP += line.lineSubtotalP;
     totalGstP += line.gstAmountP;
+    // Sum of the ROUNDED line totals — this is what the printed TOTAL
+    // column adds up to. Deriving the grand total from the unrounded
+    // figures instead would print a total that disagrees with its own
+    // column by a rupee or two, which clients query.
+    linesTotalP += line.lineTotalP;
     // Unavailable lines are shown but not counted — quoting a quantity
     // for something you can't supply shouldn't inflate the totals.
     if (!line.not_available) totalQty += Number(item.qty) || 0;
@@ -130,9 +188,11 @@ export function calcQuotation({ items = [], discount_type = 'none', discount_val
 
   const otherP = toPaise(other_charges);
 
-  // Clamp so a discount larger than the bill can't produce a negative
-  // grand total (which would look like the business owes the client).
-  let grandTotalP = subtotalP + totalGstP - discountP + otherP;
+  // Built from linesTotalP so the grand total always equals the sum of the
+  // TOTAL column as printed. Clamped so a discount larger than the bill
+  // can't produce a negative total (which would read as the business
+  // owing the client money).
+  let grandTotalP = linesTotalP - discountP + otherP;
   if (grandTotalP < 0) grandTotalP = 0;
 
   return {
@@ -142,7 +202,9 @@ export function calcQuotation({ items = [], discount_type = 'none', discount_val
     totalGstP,
     discountP,
     otherP,
+    linesTotalP,
     grandTotalP,
+    lines_total: toRupees(linesTotalP),
     // Rupee values, ready to store in NUMERIC(12,2) columns.
     subtotal: toRupees(subtotalP),
     total_gst: toRupees(totalGstP),
@@ -151,6 +213,24 @@ export function calcQuotation({ items = [], discount_type = 'none', discount_val
     grand_total: toRupees(grandTotalP),
     total_qty: totalQty,
   };
+}
+
+/**
+ * The exact GST on a line, at full precision (983.898, not 983.90).
+ *
+ * Derived from the stored taxable value and rate rather than read from a
+ * column: gst_amount is NUMERIC(12,2) so the database rounds it to paise,
+ * and gst_exact is computed at save time and never persisted. Recomputing
+ * here means a saved quotation reprints exactly as it was first shown.
+ */
+export function exactTax(item) {
+  if (!item || item.not_available) return 0;
+  const taxable = Number(item.line_subtotal);
+  const pct = Number(item.gst_percent);
+  if (!Number.isFinite(taxable) || !Number.isFinite(pct)) {
+    return Number(item.gst_amount) || 0;
+  }
+  return (taxable * pct) / 100;
 }
 
 /** Standard Indian GST slabs, for the rate dropdown. */

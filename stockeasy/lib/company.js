@@ -48,6 +48,23 @@ export const COMPANY = {
   
   },
 
+  /**
+   * Letterhead for the INDIVIDUAL quotation format, which uses a different
+   * layout: logo on the left, wordmark centred, address centred beneath.
+   *
+   * Save that strip as public/letterhead-individual.png. Until it exists,
+   * both the screen and the PDF draw the header from text in the same
+   * arrangement, so individual quotations work straight away.
+   */
+  letterheadIndividual: {
+    src: '/letterhead-individual.png',
+    // 2193x442px, so 186mm wide prints about 37mm tall.
+    widthMm: 186,
+    heightMm: null,
+    fullBleed: false,
+    offsetXMm: -6,
+  },
+
   // Used only when no letterhead image is configured or it fails to load.
   brand: {
     // The "RAJ AGENCIES" wordmark colour (RGB).
@@ -55,6 +72,24 @@ export const COMPANY = {
     // Yellow fill behind the items-table header row.
     tableHeader: [255, 255, 0],
   },
+
+  /**
+   * The covering wording above the items table. Edit these two lines to
+   * change what every quotation says — they're used by the company PDF,
+   * the individual PDF and the on-screen view, so one edit covers all.
+   *
+   * {subject} is replaced by the Subject you type on the form. When the
+   * Subject is left blank, `introNoSubject` is used instead so the
+   * sentence doesn't end up with empty quote marks.
+   */
+  greeting: 'Dear Sir',
+  intro: 'We take pleasure in offering you a quotation for “{subject}”. Accordance with the below terms and conditions.',
+  introNoSubject: 'We take pleasure in offering you a quotation. Accordance with the below terms and conditions.',
+
+  // Footer note for the individual format, where rates already include tax.
+  footerNotesIndividual: [
+    'TAX INCLUDED 18%',
+  ],
 
   // Lines printed under the items table, exactly as on the house format.
   footerNotes: [
@@ -72,3 +107,14 @@ export const COMPANY = {
 
   defaultPaymentTerms: '50% advance, balance on delivery.',
 };
+
+/**
+ * Builds the covering sentence from COMPANY.intro / COMPANY.introNoSubject.
+ * Kept here beside the wording so the PDF templates and the screen view
+ * can never drift apart.
+ */
+export function quoteIntro(subject) {
+  const s = String(subject || '').trim();
+  if (!s) return COMPANY.introNoSubject;
+  return String(COMPANY.intro).replace('{subject}', s);
+}

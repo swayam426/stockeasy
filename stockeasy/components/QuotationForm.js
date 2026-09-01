@@ -30,6 +30,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     notes: existing?.notes || '',
     terms: existing?.terms || '',
     subject: existing?.subject || '',
+    quote_type: existing?.quote_type || 'company',
     status: existing?.status || 'draft',
   }));
 
@@ -134,6 +135,10 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     });
   }
 
+  // Individual quotations have no HSN or tax columns on the document, so
+  // showing those inputs would invite data that never gets printed.
+  const isIndividual = header.quote_type === 'individual';
+
   const addLine = () => setLines(ls => [...ls, { ...BLANK_LINE }]);
   const removeLine = (idx) => setLines(ls => (ls.length === 1 ? ls : ls.filter((_, i) => i !== idx)));
 
@@ -146,6 +151,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     discount_type: discountType,
     discount_value: discountValue,
     other_charges: otherCharges,
+    quote_type: header.quote_type,
   });
 
   // Stock is advisory only: a quotation is an offer, so quoting more than
@@ -204,6 +210,35 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
 
   return (
     <form onSubmit={submit}>
+      {/* Format decides both the printed layout AND the arithmetic, so it
+          belongs at the top where it's seen before any rate is typed. */}
+      <div className="card">
+        <div className="card-title">Quotation Format</div>
+        <div className="qtype-switch">
+          {[
+            { id: 'company', label: 'Company', hint: 'GST layout with HSN codes · rates exclude tax' },
+            { id: 'individual', label: 'Individual', hint: 'Simple layout · rates already include tax' },
+          ].map(opt => (
+            <label
+              key={opt.id}
+              className={`qtype-option${header.quote_type === opt.id ? ' is-active' : ''}`}
+            >
+              <input
+                type="radio"
+                name="quote_type"
+                value={opt.id}
+                checked={header.quote_type === opt.id}
+                onChange={() => setH('quote_type', opt.id)}
+              />
+              <span>
+                <strong>{opt.label}</strong>
+                <em>{opt.hint}</em>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {/* ─── Client ─────────────────────────────────────────────── */}
       <div className="card">
         <div className="card-title">Client Details</div>
@@ -310,14 +345,14 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
             <thead>
               <tr>
                 <th style={{ minWidth: 190 }}>Item</th>
-                <th style={{ width: 96 }}>HSN</th>
+                {!isIndividual && <th style={{ width: 96 }}>HSN</th>}
                 <th style={{ width: 66 }}>Qty</th>
                 <th style={{ width: 66 }}>UOM</th>
-                <th style={{ width: 100 }}>Rate</th>
+                <th style={{ width: 100 }}>{isIndividual ? 'Rate (incl. tax)' : 'Rate'}</th>
                 <th style={{ width: 80 }}>GST %</th>
-                <th style={{ width: 96, textAlign: 'right' }}>Taxable</th>
-                <th style={{ width: 96, textAlign: 'right' }}>Tax</th>
-                <th style={{ width: 100, textAlign: 'right' }}>Total</th>
+                {!isIndividual && <th style={{ width: 96, textAlign: 'right' }}>Taxable</th>}
+                {!isIndividual && <th style={{ width: 96, textAlign: 'right' }}>Tax</th>}
+                <th style={{ width: 100, textAlign: 'right' }}>{isIndividual ? 'Amount' : 'Total'}</th>
                 <th style={{ width: 40 }}></th>
               </tr>
             </thead>
@@ -384,14 +419,16 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
                         Not available
                       </label>
                     </td>
-                    <td style={cellStyle} data-label="HSN">
-                      <input
-                        value={l.hsn_code}
-                        onChange={e => setLine(i, { hsn_code: e.target.value })}
-                        placeholder="HSN"
-                        style={{ fontSize: 11 }}
-                      />
-                    </td>
+                    {!isIndividual && (
+                      <td style={cellStyle} data-label="HSN">
+                        <input
+                          value={l.hsn_code}
+                          onChange={e => setLine(i, { hsn_code: e.target.value })}
+                          placeholder="HSN"
+                          style={{ fontSize: 11 }}
+                        />
+                      </td>
+                    )}
                     <td style={cellStyle} data-label="Qty">
                       <input
                         type="number" min="0" step="any" value={l.qty}
@@ -419,18 +456,22 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
                       </select>
                     </td>
                     {l.not_available ? (
-                      <td colSpan={3} style={{ ...cellStyle, textAlign: 'center', paddingTop: 14, fontStyle: 'italic', color: 'var(--text3)' }}>
+                      <td colSpan={isIndividual ? 1 : 3} style={{ ...cellStyle, textAlign: 'center', paddingTop: 14, fontStyle: 'italic', color: 'var(--text3)' }}>
                         NOT AVAILABLE
                       </td>
                     ) : (
                       <>
-                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Taxable">
-                          {formatPaise(t.lineSubtotalP || 0)}
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Tax">
-                          {formatPaise(t.gstAmountP || 0)}
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14, fontWeight: 600 }} data-label="Total">
+                        {!isIndividual && (
+                          <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Taxable">
+                            {formatPaise(t.lineSubtotalP || 0)}
+                          </td>
+                        )}
+                        {!isIndividual && (
+                          <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14 }} data-label="Tax">
+                            {formatPaise(t.gstAmountP || 0)}
+                          </td>
+                        )}
+                        <td style={{ ...cellStyle, textAlign: 'right', paddingTop: 14, fontWeight: 600 }} data-label={isIndividual ? 'Amount' : 'Total'}>
                           {formatPaise(t.lineTotalP || 0)}
                         </td>
                       </>

@@ -160,6 +160,20 @@ export async function initDb() {
   // (26-27/29/08/2026). quote_number stays as the unique internal key.
   await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS ref_number TEXT`;
 
+  // Which printed template to use.
+  //   'company'    — full GST layout: HSN, TAXABLE, TAX, TAX AMOUNT columns,
+  //                  rates exclusive of tax.
+  //   'individual' — simplified layout: S.No/ITEMS/QTY/UOM/RATE/AMOUNT only,
+  //                  rates INCLUSIVE of tax.
+  // Existing rows default to 'company', which is what they were written as.
+  await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS quote_type TEXT NOT NULL DEFAULT 'company'`;
+  await sql`
+    DO $$ BEGIN
+      ALTER TABLE quotations ADD CONSTRAINT quotations_type_chk
+        CHECK (quote_type IN ('company','individual'));
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$
+  `;
+
   // Counter table for quotation numbering. A dedicated row per year lets us
   // generate QT-2026-0001 atomically without scanning the quotations table
   // (which would race under concurrent creates).

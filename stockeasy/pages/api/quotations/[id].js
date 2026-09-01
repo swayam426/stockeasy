@@ -83,11 +83,16 @@ export default async function handler(req, res) {
         }
       }
 
+      const quoteType = body.quote_type === 'individual' ? 'individual'
+        : body.quote_type === 'company' ? 'company'
+        : (existing.quote_type || 'company');
+
       const totals = calcQuotation({
         items,
         discount_type: body.discount_type,
         discount_value: body.discount_value,
         other_charges: body.other_charges,
+        quote_type: quoteType,
       });
 
       const [quote] = await sql`
@@ -104,6 +109,7 @@ export default async function handler(req, res) {
           valid_until      = ${body.valid_until || null},
           status           = ${body.status || existing.status},
           subject          = ${body.subject || null},
+          quote_type       = ${quoteType},
           ref_number       = ${body.ref_number || existing.ref_number || quoteRefNumber(body.quote_date || existing.quote_date)},
           discount_type    = ${body.discount_type || 'none'},
           discount_value   = ${Number(body.discount_value) || 0},

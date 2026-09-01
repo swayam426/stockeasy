@@ -1,4 +1,5 @@
-import { COMPANY } from './company';
+import { COMPANY, quoteIntro } from './company';
+import { exactTax } from './quoteMath';
 
 /**
  * Generates the quotation PDF in the printed house format:
@@ -190,13 +191,11 @@ export async function downloadQuotationPdf(quote) {
 
   // ── Covering line ───────────────────────────────────────────────────
   doc.setFont(FONT, 'normal').setFontSize(11);
-  doc.text('Dear Sir', MARGIN, y);
+  doc.text(COMPANY.greeting || 'Dear Sir', MARGIN, y);
   y += 5.5;
 
-  const subject = String(quote.subject || '').trim();
-  const intro = subject
-    ? `We take pleasure in offering you a quotation for “${subject}”. Accordance with the below terms and conditions.`
-    : 'We take pleasure in offering you a quotation. Accordance with the below terms and conditions.';
+  // Wording lives in lib/company.js so one edit covers every template.
+  const intro = quoteIntro(quote.subject);
 
   // First line is indented, as on the stationery.
   const introLines = doc.splitTextToSize(intro, pageW - MARGIN * 2 - 8);
@@ -232,16 +231,60 @@ export async function downloadQuotationPdf(quote) {
       rate2(it.unit_price),
       trim(it.line_subtotal),
       it.gst_percent ? `${Number(it.gst_percent)}%` : '',
-      trim(it.gst_exact != null ? it.gst_exact : it.gst_amount),
+      trim(exactTax(it)),
       whole(it.line_total),
     ];
   });
+
+  // ── Totals rows, printed inside the table so the figures line up
+  //    under the columns they summarise. ─────────────────────────────
+  const sum = (fn) => items.reduce((t, it) => t + (it.not_available ? 0 : fn(it)), 0);
+  const taxableSum = sum(it => Number(it.line_subtotal) || 0);
+  const taxSum = sum(it => exactTax(it));
+  const columnSum = sum(it => Math.round(Number(it.line_total) || 0));
+
+  const discount = Number(quote.discount_amount) || 0;
+  const charges = Number(quote.other_charges) || 0;
+  const grand = Math.max(0, columnSum - discount + charges);
+
+  const bold = { fontStyle: 'bold', halign: 'right' };
+  const foot = [[
+    { content: 'TOTAL', colSpan: 6, styles: bold },
+    { content: trim(taxableSum), styles: bold },
+    { content: '', styles: {} },
+    { content: trim(taxSum), styles: bold },
+    { content: whole(columnSum), styles: bold },
+  ]];
+
+  if (discount > 0) {
+    foot.push([
+      { content: 'Discount', colSpan: 9, styles: { halign: 'right' } },
+      { content: '- ' + whole(discount), styles: { halign: 'right' } },
+    ]);
+  }
+  if (charges > 0) {
+    foot.push([
+      { content: 'Other Charges', colSpan: 9, styles: { halign: 'right' } },
+      { content: whole(charges), styles: { halign: 'right' } },
+    ]);
+  }
+
+  foot.push([
+    { content: 'GRAND TOTAL', colSpan: 9, styles: { ...bold, fontSize: 9.5 } },
+    { content: whole(grand), styles: { ...bold, fontSize: 9.5 } },
+  ]);
 
   autoTable(doc, {
     startY: y,
     margin: { left: MARGIN, right: MARGIN },
     head: [['S.NO', 'ITEM', 'HSN', 'QTY', 'UOM', 'RATE', 'TAXABLE', 'TAX', 'TAX\nAMOUNT', 'TOTAL']],
     body,
+    foot,
+    footStyles: {
+      fillColor: [255, 255, 255], textColor: 0,
+      lineColor: 0, lineWidth: 0.25, fontSize: 9,
+    },
+    showFoot: 'lastPage',
     theme: 'grid',
     styles: {
       font: FONT, fontSize: 8.5, cellPadding: 1.4,

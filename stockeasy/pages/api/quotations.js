@@ -68,11 +68,16 @@ export default async function handler(req, res) {
       // Totals are ALWAYS recomputed server-side. Whatever the browser sent
       // for subtotal/grand_total is ignored — otherwise a crafted request
       // could store a quotation whose total disagrees with its own lines.
+      // The template also decides the arithmetic: individual quotations
+      // quote tax-inclusive rates, company ones add GST on top.
+      const quoteType = body.quote_type === 'individual' ? 'individual' : 'company';
+
       const totals = calcQuotation({
         items,
         discount_type: body.discount_type,
         discount_value: body.discount_value,
         other_charges: body.other_charges,
+        quote_type: quoteType,
       });
 
       const quoteNumber = await nextQuoteNumber(sql);
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
         INSERT INTO quotations (
           quote_number, client_id, client_name, contact_person, phone, email,
           billing_address, shipping_address, gst_number,
-          quote_date, valid_until, status, subject, ref_number,
+          quote_date, valid_until, status, subject, ref_number, quote_type,
           discount_type, discount_value, other_charges,
           subtotal, total_gst, discount_amount, grand_total, total_qty,
           notes, terms, created_by
@@ -100,6 +105,7 @@ export default async function handler(req, res) {
           ${body.status || 'draft'},
           ${body.subject || null},
           ${body.ref_number || quoteRefNumber(quoteDate)},
+          ${quoteType},
           ${body.discount_type || 'none'},
           ${Number(body.discount_value) || 0},
           ${totals.other_charges},

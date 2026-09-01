@@ -3,6 +3,7 @@ import QuotationForm from './QuotationForm';
 import QuotationView from './QuotationView';
 import { formatPaise, toPaise, QUOTE_STATUSES } from '../lib/quoteMath';
 import { downloadQuotationPdf } from '../lib/quotePdf';
+import { downloadIndividualQuotationPdf } from '../lib/quotePdfIndividual';
 import { DownloadCloud } from './Icons';
 
 const STATUS_COLORS = {
@@ -71,7 +72,9 @@ export default function QuotationsTab({ products, onAlert }) {
       const res = await fetch(`/api/quotations/${q.id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not load quotation');
-      await downloadQuotationPdf(data);
+      await (data.quote_type === 'individual'
+        ? downloadIndividualQuotationPdf(data)
+        : downloadQuotationPdf(data));
     } catch (err) {
       onAlert(err.message || 'Could not generate the PDF.', 'error');
     } finally {
@@ -191,7 +194,9 @@ export default function QuotationsTab({ products, onAlert }) {
                   <tr key={q.id}>
                     <td data-label="Quotation">
                       <strong>{q.quote_number}</strong>
-                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>by {q.created_by}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                        {q.quote_type === 'individual' ? 'Individual' : 'Company'} · by {q.created_by}
+                      </div>
                     </td>
                     <td data-label="Client">{q.client_name}</td>
                     <td data-label="Date">{fmtDate(q.quote_date)}</td>
