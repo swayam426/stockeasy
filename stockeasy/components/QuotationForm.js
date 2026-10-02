@@ -568,12 +568,11 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
               onChange={e => setH('show_grand_total', e.target.checked)}
               style={{ width: 'auto', margin: 0 }}
             />
-            Print the Grand Total row on the quotation
+            Print the totals rows on the quotation
           </label>
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, marginLeft: 23 }}>
-            Untick to send the quotation as a price list, with line totals but
-            no headline figure. The totals below still show here for your own
-            reference either way.
+            Untick to send the quotation as a price list — the TOTAL and
+            GRAND TOTAL rows are both left off, leaving only the item lines.
           </div>
         </div>
 
@@ -592,13 +591,25 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
               <span>{label}</span><span>{value}</span>
             </div>
           ))}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            paddingTop: 8, marginTop: 6, borderTop: '1px solid var(--border)',
-            fontSize: 16, fontWeight: 700, color: 'var(--text)',
-          }}>
-            <span>Grand Total</span><span>{formatPaise(totals.grandTotalP)}</span>
-          </div>
+          {/* This preview mirrors the printed document, so the Grand Total
+              disappears here too when the option is unticked — a checkbox
+              that leaves the figure on screen is just confusing. */}
+          {header.show_grand_total ? (
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              paddingTop: 8, marginTop: 6, borderTop: '1px solid var(--border)',
+              fontSize: 16, fontWeight: 700, color: 'var(--text)',
+            }}>
+              <span>Grand Total</span><span>{formatPaise(totals.grandTotalP)}</span>
+            </div>
+          ) : (
+            <div style={{
+              paddingTop: 8, marginTop: 6, borderTop: '1px solid var(--border)',
+              fontSize: 12, color: 'var(--text3)', fontStyle: 'italic',
+            }}>
+              Totals hidden — this quotation prints the item lines only.
+            </div>
+          )}
         </div>
 
         <div className="form-row">

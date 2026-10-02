@@ -255,21 +255,27 @@ export async function downloadQuotationPdf(quote) {
   const grand = Math.max(0, columnSum - discount + charges);
 
   const bold = { fontStyle: 'bold', halign: 'right' };
-  const foot = [[
+
+  // Unticking "Print the Grand Total row" removes the whole totals block —
+  // TOTAL, discount, charges and GRAND TOTAL — leaving the line items alone
+  // so the document reads as a plain price list.
+  const showTotals = quote.show_grand_total !== false;
+
+  const foot = showTotals ? [[
     { content: 'TOTAL', colSpan: 6, styles: bold },
     { content: trim(taxableSum), styles: bold },
     { content: '', styles: {} },
     { content: trim(taxSum), styles: bold },
     { content: whole(columnSum), styles: bold },
-  ]];
+  ]] : [];
 
-  if (discount > 0) {
+  if (showTotals && discount > 0) {
     foot.push([
       { content: 'Discount', colSpan: 9, styles: { halign: 'right' } },
       { content: '- ' + whole(discount), styles: { halign: 'right' } },
     ]);
   }
-  if (charges > 0) {
+  if (showTotals && charges > 0) {
     foot.push([
       { content: 'Other Charges', colSpan: 9, styles: { halign: 'right' } },
       { content: whole(charges), styles: { halign: 'right' } },
@@ -278,7 +284,7 @@ export async function downloadQuotationPdf(quote) {
 
   // The headline figure is optional — some quotations go out as a price
   // list. The per-line and TOTAL rows always print.
-  if (quote.show_grand_total !== false) {
+  if (showTotals) {
     foot.push([
       { content: 'GRAND TOTAL', colSpan: 9, styles: { ...bold, fontSize: 9.5 } },
       { content: whole(grand), styles: { ...bold, fontSize: 9.5 } },

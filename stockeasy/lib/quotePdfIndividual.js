@@ -200,8 +200,11 @@ export async function downloadIndividualQuotationPdf(quote) {
   const charges = Number(quote.other_charges) || 0;
   const grand = Math.max(0, columnSum - discount + charges);
 
+  // Same switch as the company template: no totals block at all.
+  const showTotals = quote.show_grand_total !== false;
+
   const foot = [];
-  if (discount > 0 || charges > 0) {
+  if (showTotals && (discount > 0 || charges > 0)) {
     foot.push([{ content: 'Subtotal', colSpan: 5, styles: { halign: 'right' } },
                { content: whole(columnSum), styles: { halign: 'right' } }]);
     if (discount > 0) {
@@ -215,7 +218,7 @@ export async function downloadIndividualQuotationPdf(quote) {
   }
   // On this template the unlabelled bottom row IS the grand total, so the
   // same switch omits it entirely.
-  if (quote.show_grand_total !== false) {
+  if (showTotals) {
     foot.push([
       { content: '', colSpan: 5, styles: {} },
       { content: whole(grand), styles: { halign: 'right', fontStyle: 'bold' } },

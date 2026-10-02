@@ -201,7 +201,7 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
           {/* Totals sit inside the table so each figure lines up under the
               column it summarises. The grand total is the sum of the TOTAL
               column as printed — see lib/quoteMath.js for why. */}
-          <tfoot>
+          {showGrand && <tfoot>
             {/* Individual format: the amount sits alone under its column,
                 with no label — matching the stationery. */}
             {isIndividual ? (
@@ -232,7 +232,7 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
                 <td className="ta-r">{whole(charges)}</td>
               </tr>
             )}
-            {showGrand && (
+            {(
               <tr className="q-foot q-grand">
                 <td colSpan={isIndividual ? 5 : 9} className="ta-r q-bold">
                   {isIndividual ? '' : 'GRAND TOTAL'}
@@ -240,7 +240,7 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
                 <td className="ta-r q-bold">{whole(grand)}</td>
               </tr>
             )}
-          </tfoot>
+          </tfoot>}
         </table>
 
         {/* ── Footer notes ───────────────────────────────────── */}
