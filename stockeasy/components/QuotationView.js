@@ -21,8 +21,11 @@ import { DownloadCloud } from './Icons';
  */
 const rate2 = (v) => (Number(v) || 0).toFixed(2);
 
-/** Drops trailing zeros: 5466.10 -> 5466.1, 90.00 -> 90. */
-const trim = (v) => String(parseFloat((Number(v) || 0).toFixed(4)));
+/**
+ * Two decimal places at most, trailing zeros dropped — must match the
+ * `trim` helper in lib/quotePdf.js or screen and PDF would disagree.
+ */
+const trim = (v) => String(parseFloat((Number(v) || 0).toFixed(2)));
 
 /** Whole rupees for the TOTAL column. */
 const whole = (v) => String(Math.round(Number(v) || 0));
@@ -50,6 +53,9 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
   const discount = Number(quote.discount_amount) || 0;
   const charges = Number(quote.other_charges) || 0;
   const grand = Math.max(0, columnSum - discount + charges);
+  // Defaults to true, so quotations saved before this option existed
+  // keep printing their grand total.
+  const showGrand = quote.show_grand_total !== false;
 
   async function handleDownload() {
     setDownloading(true);
@@ -226,12 +232,14 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
                 <td className="ta-r">{whole(charges)}</td>
               </tr>
             )}
-            <tr className="q-foot q-grand">
-              <td colSpan={isIndividual ? 5 : 9} className="ta-r q-bold">
-                {isIndividual ? '' : 'GRAND TOTAL'}
-              </td>
-              <td className="ta-r q-bold">{whole(grand)}</td>
-            </tr>
+            {showGrand && (
+              <tr className="q-foot q-grand">
+                <td colSpan={isIndividual ? 5 : 9} className="ta-r q-bold">
+                  {isIndividual ? '' : 'GRAND TOTAL'}
+                </td>
+                <td className="ta-r q-bold">{whole(grand)}</td>
+              </tr>
+            )}
           </tfoot>
         </table>
 

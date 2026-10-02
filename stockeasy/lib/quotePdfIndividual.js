@@ -213,10 +213,14 @@ export async function downloadIndividualQuotationPdf(quote) {
                  { content: whole(charges), styles: { halign: 'right' } }]);
     }
   }
-  foot.push([
-    { content: '', colSpan: 5, styles: {} },
-    { content: whole(grand), styles: { halign: 'right', fontStyle: 'bold' } },
-  ]);
+  // On this template the unlabelled bottom row IS the grand total, so the
+  // same switch omits it entirely.
+  if (quote.show_grand_total !== false) {
+    foot.push([
+      { content: '', colSpan: 5, styles: {} },
+      { content: whole(grand), styles: { halign: 'right', fontStyle: 'bold' } },
+    ]);
+  }
 
   autoTable(doc, {
     startY: y,

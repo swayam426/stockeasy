@@ -160,6 +160,11 @@ export async function initDb() {
   // (26-27/29/08/2026). quote_number stays as the unique internal key.
   await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS ref_number TEXT`;
 
+  // Whether the GRAND TOTAL row prints. Some quotations are sent as a
+  // price list where a single headline figure isn't wanted. Defaults to
+  // true so existing quotations keep printing exactly as before.
+  await sql`ALTER TABLE quotations ADD COLUMN IF NOT EXISTS show_grand_total BOOLEAN NOT NULL DEFAULT TRUE`;
+
   // Which printed template to use.
   //   'company'    — full GST layout: HSN, TAXABLE, TAX, TAX AMOUNT columns,
   //                  rates exclusive of tax.

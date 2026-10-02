@@ -31,6 +31,7 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
     terms: existing?.terms || '',
     subject: existing?.subject || '',
     quote_type: existing?.quote_type || 'company',
+    show_grand_total: existing?.show_grand_total !== false,
     status: existing?.status || 'draft',
   }));
 
@@ -75,19 +76,41 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
 
   // Selecting a saved client fills the header, but the fields stay editable —
   // a one-off delivery address shouldn't force you to edit the client record.
+  //
+  // Every branch below must write ALL of these fields. Returning early and
+  // leaving some untouched is how the previous client's address and GST
+  // number ended up on the next client's quotation.
   function pickClient(id) {
-    // A history entry carries only a name — there's no client record behind
-    // it, so it fills the name and leaves the rest for you to complete.
-    if (String(id).startsWith('history:')) {
-      const name = String(id).slice('history:'.length);
-      setHeader(h => ({ ...h, client_id: '', client_name: name }));
+    const BLANK = {
+      contact_person: '',
+      phone: '',
+      email: '',
+      billing_address: '',
+      shipping_address: '',
+      gst_number: '',
+    };
+
+    // "— New / one-off client —": clear the lot and start fresh.
+    if (!id) {
+      setHeader(h => ({ ...h, ...BLANK, client_id: '', client_name: '' }));
       return;
     }
 
-    setH('client_id', id);
-    if (!id) return;
+    // A history entry carries only a name — there's no client record behind
+    // it, so the remaining fields are cleared for you to fill in.
+    if (String(id).startsWith('history:')) {
+      const name = String(id).slice('history:'.length);
+      setHeader(h => ({ ...h, ...BLANK, client_id: '', client_name: name }));
+      return;
+    }
+
     const c = clients.find(x => String(x.id) === String(id));
-    if (!c) return;
+    if (!c) {
+      // Shouldn't happen, but never leave the old client's details behind.
+      setHeader(h => ({ ...h, ...BLANK, client_id: '', client_name: '' }));
+      return;
+    }
+
     setHeader(h => ({
       ...h,
       client_id: id,
@@ -534,6 +557,23 @@ export default function QuotationForm({ products, existing, onCancel, onSaved, o
             <label>Other Charges (₹)</label>
             <input type="number" min="0" step="0.01" value={otherCharges}
               onChange={e => setOtherCharges(e.target.value)} placeholder="0" />
+          </div>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={header.show_grand_total}
+              onChange={e => setH('show_grand_total', e.target.checked)}
+              style={{ width: 'auto', margin: 0 }}
+            />
+            Print the Grand Total row on the quotation
+          </label>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, marginLeft: 23 }}>
+            Untick to send the quotation as a price list, with line totals but
+            no headline figure. The totals below still show here for your own
+            reference either way.
           </div>
         </div>
 

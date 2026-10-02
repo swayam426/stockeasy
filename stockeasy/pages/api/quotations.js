@@ -86,7 +86,7 @@ export default async function handler(req, res) {
         INSERT INTO quotations (
           quote_number, client_id, client_name, contact_person, phone, email,
           billing_address, shipping_address, gst_number,
-          quote_date, valid_until, status, subject, ref_number, quote_type,
+          quote_date, valid_until, status, subject, ref_number, quote_type, show_grand_total,
           discount_type, discount_value, other_charges,
           subtotal, total_gst, discount_amount, grand_total, total_qty,
           notes, terms, created_by
@@ -106,6 +106,7 @@ export default async function handler(req, res) {
           ${body.subject || null},
           ${body.ref_number || quoteRefNumber(quoteDate)},
           ${quoteType},
+          ${body.show_grand_total !== false},
           ${body.discount_type || 'none'},
           ${Number(body.discount_value) || 0},
           ${totals.other_charges},

@@ -110,6 +110,7 @@ export default async function handler(req, res) {
           status           = ${body.status || existing.status},
           subject          = ${body.subject || null},
           quote_type       = ${quoteType},
+          show_grand_total = ${body.show_grand_total !== false},
           ref_number       = ${body.ref_number || existing.ref_number || quoteRefNumber(body.quote_date || existing.quote_date)},
           discount_type    = ${body.discount_type || 'none'},
           discount_value   = ${Number(body.discount_value) || 0},

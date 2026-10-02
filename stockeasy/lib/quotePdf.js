@@ -32,8 +32,15 @@ const FONT = 'times';
  */
 const rate2 = (v) => (Number(v) || 0).toFixed(2);
 
-/** Drops trailing zeros: 5466.10 -> 5466.1, 90.00 -> 90, 983.898 stays. */
-const trim = (v) => String(parseFloat((Number(v) || 0).toFixed(4)));
+/**
+ * Two decimal places at most, with trailing zeros dropped:
+ *   5466.10   -> 5466.1
+ *   90.00     -> 90
+ *   4347.4572 -> 4347.46
+ * Money is only ever quoted to the paisa, so printing four decimals in the
+ * TAX AMOUNT column was noise.
+ */
+const trim = (v) => String(parseFloat((Number(v) || 0).toFixed(2)));
 
 /** Whole rupees for the TOTAL column. */
 const whole = (v) => String(Math.round(Number(v) || 0));
@@ -269,10 +276,14 @@ export async function downloadQuotationPdf(quote) {
     ]);
   }
 
-  foot.push([
-    { content: 'GRAND TOTAL', colSpan: 9, styles: { ...bold, fontSize: 9.5 } },
-    { content: whole(grand), styles: { ...bold, fontSize: 9.5 } },
-  ]);
+  // The headline figure is optional — some quotations go out as a price
+  // list. The per-line and TOTAL rows always print.
+  if (quote.show_grand_total !== false) {
+    foot.push([
+      { content: 'GRAND TOTAL', colSpan: 9, styles: { ...bold, fontSize: 9.5 } },
+      { content: whole(grand), styles: { ...bold, fontSize: 9.5 } },
+    ]);
+  }
 
   autoTable(doc, {
     startY: y,
