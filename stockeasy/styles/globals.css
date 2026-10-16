@@ -1507,3 +1507,70 @@ tbody tr:hover td {
 @media (max-width: 600px) {
   .qtype-switch { grid-template-columns: 1fr; }
 }
+
+/* ─── Inventory search with results dropdown ─────────────────────────── */
+
+.inv-search { position: relative; }
+
+.inv-search-mic,
+.inv-search-clear {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.inv-search-mic {
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  color: var(--text2);
+}
+
+.inv-search-clear {
+  right: 48px;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  color: var(--text3);
+  font-size: 18px;
+  line-height: 1;
+}
+.inv-search-clear:hover { color: var(--red); background: var(--red-bg); }
+
+.inv-search-listening {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  color: var(--text);
+}
+.inv-search-listening-dot {
+  width: 64px;
+  height: 64px;
+  background: #cc0000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  animation: pulse 1s infinite;
+}
+
+/* The dropdown reuses the product-picker styles, but must sit above the
+   Add New Product card that now follows it. */
+.inv-search .pp-menu { z-index: 140; }
