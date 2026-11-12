@@ -89,7 +89,14 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
       <div className="quote-doc">
       
         {letterhead.src && !letterheadFailed ? (
-          <img
+          <>
+            {/* The company letterhead artwork has no GST number on it, so
+                it prints above the wordmark. The individual letterhead
+                already includes its own, so this only applies here. */}
+            {COMPANY.gst && !isIndividual && (
+              <div className="qh-gst">GST:{COMPANY.gst}</div>
+            )}
+            <img
             src={letterhead.src}
             alt={COMPANY.name}
             className="qh-image"
@@ -98,8 +105,9 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
               // Same nudge as the PDF, expressed in mm so both agree.
               marginLeft: letterhead.offsetXMm ? `${letterhead.offsetXMm}mm` : undefined,
             }}
-            onError={() => setLetterheadFailed(true)}
-          />
+              onError={() => setLetterheadFailed(true)}
+            />
+          </>
         ) : (
           <div className="qh">
             <div className="qh-text">

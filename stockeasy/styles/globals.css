@@ -1574,3 +1574,11 @@ tbody tr:hover td {
 /* The dropdown reuses the product-picker styles, but must sit above the
    Add New Product card that now follows it. */
 .inv-search .pp-menu { z-index: 140; }
+
+/* GST line above the company letterhead artwork. */
+.quote-doc .qh-gst {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}

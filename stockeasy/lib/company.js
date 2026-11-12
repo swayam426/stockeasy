@@ -17,7 +17,7 @@ export const COMPANY = {
   email: 'rajagencies58@gmail.com',
 
   // GSTIN printed in the letterhead.
-  gst: '33BFVPM21521Z6',
+  gst: '33BFVPM2152J1Z6',
 
   /**
    * Letterhead image.

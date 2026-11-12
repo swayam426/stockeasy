@@ -108,8 +108,19 @@ export async function downloadQuotationPdf(quote) {
           h = dims && dims.w ? (w * dims.h) / dims.w : 26;
         }
 
-        doc.addImage(img, 'PNG', x, lh.fullBleed ? 0 : MARGIN, w, h, undefined, 'FAST');
-        y = (lh.fullBleed ? 0 : MARGIN) + h + 3;
+        const imgTop = lh.fullBleed ? 0 : MARGIN;
+
+        // The letterhead artwork carries no GST number, so it's printed
+        // above the wordmark — in the blank band at the top of the strip.
+        // Drawing it here rather than baking it into the PNG means the
+        // number can be corrected in company.js without re-editing artwork.
+        if (COMPANY.gst) {
+          doc.setFont(FONT, 'bold').setFontSize(10).setTextColor(0);
+          doc.text(`GST:${COMPANY.gst}`, MARGIN, imgTop + 4);
+        }
+
+        doc.addImage(img, 'PNG', x, imgTop + 5, w, h, undefined, 'FAST');
+        y = imgTop + 5 + h + 3;
         letterheadDrawn = true;
       } catch {
         // Fall through to the text letterhead below.
