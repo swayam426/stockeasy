@@ -353,6 +353,21 @@ export async function downloadQuotationPdf(quote) {
 
   y = doc.lastAutoTable.finalY + 6;
 
+  // ── Seal ────────────────────────────────────────────────────────────
+  // Right-aligned beneath the grand total; the notes flow on its left.
+  const sealCfg = COMPANY.seal || {};
+  if (sealCfg.src) {
+    const seal = await loadImage(sealCfg.src);
+    if (seal) {
+      try {
+        const s = Number(sealCfg.sizeMm) || 32;
+        let sy = doc.lastAutoTable.finalY + 3;
+        if (sy + s > pageH - MARGIN) { doc.addPage(); sy = MARGIN; y = MARGIN; }
+        doc.addImage(seal, 'PNG', right - s, sy, s, s, undefined, 'FAST');
+      } catch { /* a bad seal image must never block the download */ }
+    }
+  }
+
   // ── Footer notes ────────────────────────────────────────────────────
   const notes = [
     ...(COMPANY.footerNotes || []),

@@ -1582,3 +1582,8 @@ tbody tr:hover td {
   color: var(--text);
   margin-bottom: 2px;
 }
+
+/* Company seal under the totals — right-aligned, and the footer notes
+   rise beside it rather than below, so the page stays compact. */
+.quote-doc .q-seal { display: flex; justify-content: flex-end; margin: 4px 0 0; height: 0; }
+.quote-doc .q-seal img { display: block; margin-top: 2px; position: relative; z-index: 1; print-color-adjust: exact; -webkit-print-color-adjust: exact; }

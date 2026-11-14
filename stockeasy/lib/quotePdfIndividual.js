@@ -265,6 +265,20 @@ export async function downloadIndividualQuotationPdf(quote) {
 
   y = doc.lastAutoTable.finalY + 7;
 
+  // ── Seal (right-aligned under the total) ────────────────────────────
+  const sealCfg = COMPANY.seal || {};
+  if (sealCfg.src) {
+    const seal = await loadImage(sealCfg.src);
+    if (seal) {
+      try {
+        const s = Number(sealCfg.sizeMm) || 32;
+        let sy = doc.lastAutoTable.finalY + 3;
+        if (sy + s > pageH - MARGIN) { doc.addPage(); sy = MARGIN; y = MARGIN; }
+        doc.addImage(seal, 'PNG', right - s, sy, s, s, undefined, 'FAST');
+      } catch { /* never block the download */ }
+    }
+  }
+
   // ── Footer notes ────────────────────────────────────────────────────
   const notes = [
     ...(COMPANY.footerNotesIndividual || ['TAX INCLUDED 18%']),

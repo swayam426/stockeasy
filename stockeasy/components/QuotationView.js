@@ -251,6 +251,18 @@ export default function QuotationView({ quote, onClose, onEdit, onAlert }) {
           </tfoot>}
         </table>
 
+        {/* Company seal, right-aligned under the grand total */}
+        {COMPANY.seal && COMPANY.seal.src && (
+          <div className="q-seal">
+            <img
+              src={COMPANY.seal.src}
+              alt=""
+              style={{ width: `${COMPANY.seal.sizeMm || 32}mm`, height: `${COMPANY.seal.sizeMm || 32}mm` }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
+        )}
+
         {/* ── Footer notes ───────────────────────────────────── */}
         <div className="q-notes">
           {((isIndividual ? COMPANY.footerNotesIndividual : COMPANY.footerNotes) || []).map((l, i) => <div key={`f${i}`}>{l}</div>)}

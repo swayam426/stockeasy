@@ -5,6 +5,7 @@ import QuotationsTab from '../components/QuotationsTab';
 import ClientsTab from '../components/ClientsTab';
 import ModulePicker from '../components/ModulePicker';
 import { downloadXlsx } from '../lib/xlsx';
+import InventoryImport from '../components/InventoryImport';
 import { DownloadCloud } from '../components/Icons';
 import ProductPicker from '../components/ProductPicker';
 import InventorySearch from '../components/InventorySearch';
@@ -415,14 +416,17 @@ function InventoryTab({ products, onRefresh, onAlert, stockFilter, setStockFilte
             ? `${products.length} products`
             : `${filtered.length} of ${products.length} products shown`}
         </span>
-        <button
-          className="btn btn-sm"
-          onClick={handleExport}
-          disabled={exporting || products.length === 0}
-          title="Download all inventory as an Excel file"
-        >
-          {exporting ? <><span className="spinner" /> Preparing…</> : <><DownloadCloud /> Download</>}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <InventoryImport products={products} onDone={onRefresh} onAlert={onAlert} />
+          <button
+            className="btn btn-sm"
+            onClick={handleExport}
+            disabled={exporting || products.length === 0}
+            title="Download all inventory as an Excel file"
+          >
+            {exporting ? <><span className="spinner" /> Preparing…</> : <><DownloadCloud /> Download</>}
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

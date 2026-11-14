@@ -65,6 +65,16 @@ export const COMPANY = {
     offsetXMm: -6,
   },
 
+  /**
+   * Company seal, printed at the right, just under the items table
+   * (below the grand total). Transparent PNG in /public.
+   * sizeMm is its diameter; set src to null to turn it off.
+   */
+  seal: {
+    src: '/seal.png',
+    sizeMm: 32,
+  },
+
   // Used only when no letterhead image is configured or it fails to load.
   brand: {
     // The "RAJ AGENCIES" wordmark colour (RGB).
